@@ -704,7 +704,7 @@ function renderJobItem(job) {
       ${ICONS.download} Download
     </a>`;
   } else if (job.status === 'error') {
-    actionHtml = `<span style="font-size:0.8rem;color:var(--esb-error);" title="${escHtml(job.error_msg||'')}">See details</span>`;
+    actionHtml = `<button class="report-btn" onclick="alert(this.dataset.err)" data-err="${escHtml(job.error_msg||'No error details available')}" style="color:var(--esb-error);border-color:var(--esb-error);">See details</button>`;
   }
 
   const deleteBtn = `<button class="report-btn" onclick="deleteMyJob('${escHtml(job.id)}')"
@@ -1016,3 +1016,4 @@ async function render() {
 </script>
 </body>
 </html>
+
