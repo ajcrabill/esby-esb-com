@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(location.protocol!=='https:'&&location.hostname!=='localhost')location.replace('https:'+location.href.slice(5));</script>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Board Meeting Evaluator — ESB Coach Tool</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+<!-- Vendor CSS Files -->
+<link href="https://www.effectiveschoolboards.com/assets/vendor/aos/aos.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/css/style.css" rel="stylesheet">
+
+<!-- Favicons -->
+<link href="https://www.effectiveschoolboards.com/assets/img/favicon.png" rel="icon">
+<link href="https://www.effectiveschoolboards.com/assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --esb-dark: #2c3e50;
+    --esb-blue: #3a6ea8;
+    --esb-blue-light: #4d82c0;
+    --esb-blue-dark: #2a5285;
+    --esb-amber: #e8a000;
+    --esb-amber-light: #f5b833;
+    --esb-amber-dark: #c07800;
+    --esb-bg: #f5f6f8;
+    --esb-surface: #ffffff;
+    --esb-border: #dde2ea;
+    --esb-border-strong: #c5ccd8;
+    --esb-text: #1a2533;
+    --esb-text-secondary: #4a5568;
+    --esb-text-muted: #718096;
+    --esb-success: #276749;
+    --esb-success-bg: #e8f5ee;
+    --esb-error: #9b2c2c;
+    --esb-error-bg: #fff5f5;
+    --esb-warning: #7b4a00;
+    --esb-warning-bg: #fffaf0;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
+    --transition: 150ms ease;
+  }
+
+  .breadcrumb-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .user-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.875rem;
+    color: var(--esb-text-secondary);
+  }
+  .user-strip-email { font-weight: 500; color: var(--esb-blue); }
+  .user-strip-divider { color: var(--esb-border-strong); }
+  .user-strip-signout {
+    background: none; border: none; padding: 0; cursor: pointer;
+    color: var(--esb-text-muted); font-size: 0.875rem; text-decoration: underline;
+  }
+  .user-strip-signout:hover { color: var(--esb-error); }
+
+  /* ── Portal layout ── */
+  #portal-loading {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 200px; color: var(--esb-text-muted); gap: 12px;
+  }
+
+  /* ── Card ── */
+  .portal-card {
+    background: var(--esb-surface);
+    border: 1px solid var(--esb-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  .portal-card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--esb-dark);
+    margin: 0 0 6px;
+  }
+  .portal-card-subtitle {
+    font-size: 0.875rem;
+    color: var(--esb-text-muted);
+    margin: 0 0 24px;
+  }
+
+  /* ── Forms ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--esb-text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--esb-border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    color: var(--esb-text);
+    background: var(--esb-surface);
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  .form-input:focus {
+    outline: none;
+    border-color: var(--esb-blue);
+    box-shadow: 0 0 0 3px rgba(58,110,168,0.12);
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: var(--radius-sm);
+    font-size: 0.9375rem; font-weight: 600; cursor: pointer;
+    border: none; transition: all var(--transition);
+  }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--esb-blue); color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--esb-blue-dark); }
+  .btn-block { width: 100%; justify-content: center; }
+  .btn-sm { padding: 6px 14px; font-size: 0.8125rem; }
+  .btn-ghost {
+    background: none; border: 1px solid var(--esb-border-strong);
+    color: var(--esb-text-secondary);
+  }
+  .btn-ghost:hover:not(:disabled) { background: var(--esb-bg); }
+
+  /* ── Alerts ── */
+  .alert {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; border-radius: var(--radius-sm);
+    font-size: 0.875rem; margin-bottom: 12px;
+  }
+  .alert svg { flex-shrink: 0; margin-top: 1px; }
+  .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+  .alert-success { background: var(--esb-success-bg); color: var(--esb-success); border: 1px solid #a7d8bc; }
+  .alert-error { background: var(--esb-error-bg); color: var(--esb-error); border: 1px solid #fed7d7; }
+  .alert-warning { background: var(--esb-warning-bg); color: var(--esb-warning); border: 1px solid #fbd38d; }
+  .mb-2 { margin-bottom: 8px; }
+
+  /* ── OTP flow ── */
+  .otp-step { display: none; flex-direction: column; gap: 10px; }
+  .otp-step.active { display: flex; }
+  .otp-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: none; border: none; padding: 0; cursor: pointer;
+    color: var(--esb-text-muted); font-size: 0.875rem;
+  }
+  .otp-back:hover { color: var(--esb-blue); }
+
+  /* ── Sign-in card ── */
+  .signin-wrap {
+    display: flex; justify-content: center; padding: 16px 0;
+  }
+  .signin-card {
+    background: var(--esb-surface);
+    border: 1px solid var(--esb-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 40px;
+    width: 100%; max-width: 440px;
+  }
+  .signin-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: var(--esb-blue); display: flex;
+    align-items: center; justify-content: center; margin-bottom: 20px;
+  }
+  .signin-title {
+    font-size: 1.35rem; font-weight: 700;
+    color: var(--esb-dark); margin: 0 0 6px;
+  }
+  .signin-subtitle {
+    font-size: 0.875rem; color: var(--esb-text-muted); margin: 0 0 28px;
+  }
+
+  /* ── Job list ── */
+  .job-list { display: flex; flex-direction: column; gap: 12px; }
+  .job-item {
+    border: 1px solid var(--esb-border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .job-status-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .job-status-dot.pending,
+  .job-status-dot.processing { background: var(--esb-amber); animation: pulse 1.5s infinite; }
+  .job-status-dot.complete { background: #48bb78; }
+  .job-status-dot.error { background: #fc8181; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .job-info { flex: 1; min-width: 0; }
+  .job-district { font-weight: 600; color: var(--esb-text); font-size: 0.9375rem; }
+  .job-meta { font-size: 0.8125rem; color: var(--esb-text-muted); margin-top: 2px; }
+  .job-date { white-space: nowrap; font-size: 0.8125rem; color: var(--esb-text-muted); }
+
+  /* ── Status badge ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  }
+  .badge-processing { background: #fef3c7; color: #92400e; }
+  .badge-complete { background: #d1fae5; color: #065f46; }
+  .badge-error { background: #fee2e2; color: #991b1b; }
+  .badge-pending { background: #e0f2fe; color: #0369a1; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center; padding: 48px 24px;
+    color: var(--esb-text-muted);
+  }
+  .empty-state-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+  .empty-state-title { font-size: 1.1rem; font-weight: 600; color: var(--esb-text-secondary); margin-bottom: 8px; }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--esb-border);
+    border-top-color: var(--esb-blue);
+    animation: spin 0.7s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state { display: flex; align-items: center; gap: 10px; color: var(--esb-text-muted); }
+</style>
+</head>
+
+<body>
+
+<!-- ======= Header ======= -->
+<header id="header" class="fixed-top d-flex align-items-center">
+  <div class="container d-flex align-items-center">
+    <a href="/" class="logo me-auto"><img src="https://www.effectiveschoolboards.com/assets/img/logo.png" alt="Effective School Boards logo"></a>
+
+    <nav id="navbar" class="navbar order-last order-lg-0">
+      <ul>
+        <li><a class="nav-link scrollto" href="https://www.effectiveschoolboards.com/">Home</a></li>
+        <li class="dropdown"><a href="https://www.effectiveschoolboards.com/framework"><span>Framework</span><i class="bi bi-chevron-down"></i></a>
+          <ul>
+            <li><a href="https://www.effectiveschoolboards.com/framework/"><strong>The ESB Framework</strong></a></li>
+            <li><a href="https://www.effectiveschoolboards.com/framework/about">About The ESB Framework</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/framework/other">Related Frameworks</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/toolkit">State ESB Toolkit</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/publications/">Great On Their Behalf</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/newsletter/">ESB Newsletter</a></li>
+          </ul>
+        </li>
+        <li class="dropdown"><a href="https://www.effectiveschoolboards.com/coaches"><span>Coaches</span><i class="bi bi-chevron-down"></i></a>
+          <ul>
+            <li><a href="https://www.effectiveschoolboards.com/coaches">Find An ESB Coach</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/coaches/become">Become An ESB Coach</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/coaches/senior">Become A Senior ESB Coach</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/coach-newsletter">Subscribe to Coaches Newsletter</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/store">Visit the ESB Store</a></li>
+          </ul>
+        </li>
+        <li class="dropdown"><a href="https://www.effectiveschoolboards.com/resources"><span>Resources</span><i class="bi bi-chevron-down"></i></a>
+          <ul>
+            <li><a href="https://www.effectiveschoolboards.com/resources/time-use">Time Use Evaluation</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/board-self-eval">Board Self Evaluation</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/supt-eval">Superintendent Evaluation</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/priority-examples">Goal &amp; Guardrail Examples</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/onboarding">Board Member Onboarding</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/toolkit">State ESB Toolkit</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/glossary">Glossary</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/quizzes">Quizzes</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/resources/">Recommended Reading</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/publications">ESB Publications</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/community">Community Discussion</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/store">ESB Store</a></li>
+            <li><a href="https://www.effectiveschoolboards.com/newsletter/">ESB Newsletter</a></li>
+          </ul>
+        </li>
+        <li><a class="nav-link scrollto" href="https://www.effectiveschoolboards.com/contact">Contact</a></li>
+      </ul>
+      <i class="bi bi-list mobile-nav-toggle"></i>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page-content" aria-label="Content">
+  <div class="wrapper">
+
+    <!-- ======= Breadcrumbs ======= -->
+    <section class="breadcrumbs">
+      <div class="container">
+        <ol>
+          <li><a href="https://www.effectiveschoolboards.com/">Home</a></li>
+          <li>Board Meeting Evaluator</li>
+        </ol>
+        <div class="breadcrumb-row">
+          <h1>Board Meeting Time Use Evaluator</h1>
+          <div class="user-strip" id="user-strip"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= Portal Content ======= -->
+    <section class="inner-page">
+      <div class="container">
+        <div id="main-content">
+          <div id="portal-loading">
+            <div class="spinner"></div>
+            <span>Loading…</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ======= Footer ======= -->
+<footer id="footer">
+  <div class="footer-top">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-3 col-md-6 footer-contact">
+          <h5>Effective School Boards<span>.</span></h5>
+          <p>
+            <strong>About Coaching</strong><a href="mailto:coach@effectiveschoolboards.com?subject=Re:+ESB+Coaching"> coach at effectiveschoolboards.com</a><br>
+            <strong>General Inquiries</strong><a href="mailto:info@effectiveschoolboards.com?subject=Re:+Effective+School+Boards"> info at effectiveschoolboards.com</a><br>
+          </p>
+        </div>
+        <div class="col-lg-2 col-md-6 footer-links">
+          <h4>For School Systems</h4>
+          <ul>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/coaches">Find A Coach</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/framework">Board Self Evaluations</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/resources">Resources</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/publications">ESB Publications</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/newsletter/">ESB Newsletter</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-2 col-md-6 footer-links">
+          <h4>For States</h4>
+          <ul>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/coaches">Find A Coach</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/resources/toolkit">State ESB Toolkit</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/framework/other">State Specific Frameworks</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-2 col-md-6 footer-links">
+          <h4>For Coaches</h4>
+          <ul>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/coaches/become">Become An ESB Coach</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/framework">ESB Framework</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/resources">Recommended Reading</a></li>
+            <li><i class="bx bx-chevron-right"></i> <a href="https://www.effectiveschoolboards.com/store">ESB Store</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container d-md-flex py-4">
+    <div class="me-md-auto text-center text-md-start">
+      <div class="copyright">
+        &copy; Copyright <strong><span>Effective School Boards</span></strong>. All Rights Reserved. Student outcomes don't change until adult behaviors change.&trade;
+      </div>
+    </div>
+    <div class="text-center text-md-end pt-3 pt-md-0" style="font-size:0.85rem;">
+      <a href="/privacy/" style="color:#bbb;">Privacy Policy</a>
+    </div>
+  </div>
+</footer>
+
+<a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+<!-- Vendor JS Files -->
+<script src="https://www.effectiveschoolboards.com/assets/vendor/purecounter/purecounter_vanilla.js"></script>
+<script src="https://www.effectiveschoolboards.com/assets/vendor/aos/aos.js"></script>
+<script src="https://www.effectiveschoolboards.com/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="https://www.effectiveschoolboards.com/assets/vendor/glightbox/js/glightbox.min.js"></script>
+<script src="https://www.effectiveschoolboards.com/assets/vendor/swiper/swiper-bundle.min.js"></script>
+<script src="https://www.effectiveschoolboards.com/assets/js/main.js"></script>
+
+<script>
+const API = 'https://esbcloud.taild49f53.ts.net:8444';
+const TOKEN_KEY = 'esby_token';
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+const ICONS = {
+  mail: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg>`,
+  arrow: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>`,
+  alertCircle: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  check: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>`,
+  video: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+  download: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  clock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>`,
+  plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+};
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(method, path, body = null, auth = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (!res.ok) {
+    let msg = `Request failed (${res.status})`;
+    try { const d = await res.json(); msg = d.detail || d.message || msg; } catch(e) {}
+    throw new Error(msg);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ── Auth state ────────────────────────────────────────────────────────────────
+let currentUser = null;
+
+function getToken() { return localStorage.getItem(TOKEN_KEY); }
+function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+async function loadUser() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    currentUser = await api('GET', '/auth/me');
+    return currentUser;
+  } catch(e) {
+    clearToken();
+    return null;
+  }
+}
+
+function signOut() {
+  clearToken();
+  currentUser = null;
+  renderUserStrip();
+  render();
+}
+
+function renderUserStrip() {
+  const el = document.getElementById('user-strip');
+  if (!el) return;
+  if (currentUser) {
+    el.innerHTML = `
+      <span class="user-strip-email">${escHtml(currentUser.email)}</span>
+      <span class="user-strip-divider">|</span>
+      <button class="user-strip-signout" onclick="signOut()">Sign out</button>
+    `;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+// ── OTP flow ──────────────────────────────────────────────────────────────────
+function otpStep(step) {
+  ['email','code','loading'].forEach(s => {
+    const el = document.getElementById(`otp-step-${s}`);
+    if (el) el.classList.toggle('active', s === step);
+  });
+}
+
+function showOtpError(step, msg) {
+  const id = step === 'email' ? 'otp-err-email' : 'otp-err-code';
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = `<div class="alert alert-error mb-2">${ICONS.alertCircle} ${escHtml(msg)}</div>`;
+}
+
+function resetOtp() {
+  otpStep('email');
+  ['otp-err-email','otp-err-code'].forEach(id => {
+    const e = document.getElementById(id); if(e) e.innerHTML='';
+  });
+  const c = document.getElementById('otp-input-code');
+  if (c) c.value = '';
+}
+
+async function requestOtp() {
+  const emailEl = document.getElementById('otp-input-email');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const errEl = document.getElementById('otp-err-email');
+  if (errEl) errEl.innerHTML = '';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showOtpError('email', 'Please enter a valid email address.');
+    return;
+  }
+  const btn = document.getElementById('otp-send-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Sending…'; }
+  try {
+    await api('POST', '/auth/request', { email }, false);
+    const sentMsg = document.getElementById('otp-sent-msg');
+    if (sentMsg) sentMsg.textContent = `A 6-digit code has been sent to ${email}.`;
+    otpStep('code');
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = `${ICONS.mail} Send Access Code`; }
+    showOtpError('email', e.message || 'Failed to send code. Please try again.');
+  }
+}
+
+async function verifyOtp() {
+  const emailEl = document.getElementById('otp-input-email');
+  const codeEl = document.getElementById('otp-input-code');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const code = codeEl ? codeEl.value.trim() : '';
+  const errEl = document.getElementById('otp-err-code');
+  if (errEl) errEl.innerHTML = '';
+  if (!code || code.length !== 6) {
+    showOtpError('code', 'Please enter the 6-digit code from your email.');
+    return;
+  }
+  otpStep('loading');
+  try {
+    const result = await api('POST', '/auth/verify', { email, code }, false);
+    setToken(result.token);
+    currentUser = await api('GET', '/auth/me');
+    renderUserStrip();
+    render();
+  } catch(e) {
+    otpStep('code');
+    showOtpError('code', e.message || 'Invalid or expired code. Please try again.');
+  }
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+function renderSignIn() {
+  return `
+    <div class="signin-wrap">
+      <div class="signin-card">
+        <div class="signin-icon">${ICONS.video}</div>
+        <div class="signin-title">ESB Coach Sign In</div>
+        <div class="signin-subtitle">Sign in to access the Board Meeting Time Use Evaluator</div>
+
+        <div id="otp-step-email" class="otp-step active">
+          <div id="otp-err-email"></div>
+          <div class="form-group">
+            <label class="form-label" for="otp-input-email">Email address</label>
+            <input class="form-input" type="email" id="otp-input-email"
+                   placeholder="you@district.org" autocomplete="email"/>
+          </div>
+          <button class="btn btn-primary btn-block" id="otp-send-btn" onclick="requestOtp()">
+            ${ICONS.mail} Send Access Code
+          </button>
+        </div>
+
+        <div id="otp-step-code" class="otp-step">
+          <button class="otp-back" onclick="resetOtp()">${ICONS.arrow} Back</button>
+          <div id="otp-err-code"></div>
+          <div class="alert alert-info">
+            ${ICONS.mail}
+            <span id="otp-sent-msg">A 6-digit code has been sent to your email.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="otp-input-code">Access code</label>
+            <input class="form-input" type="text" id="otp-input-code"
+                   placeholder="000000" maxlength="6" inputmode="numeric"
+                   autocomplete="one-time-code"
+                   style="letter-spacing:0.2em; font-size:20px; text-align:center;"/>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="verifyOtp()">
+            ${ICONS.check} Verify &amp; Sign In
+          </button>
+        </div>
+
+        <div id="otp-step-loading" class="otp-step">
+          <div class="loading-state"><div class="spinner"></div> Signing in…</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Job submission form ───────────────────────────────────────────────────────
+async function submitEval() {
+  const urlEl = document.getElementById('eval-url');
+  const districtEl = document.getElementById('eval-district');
+  const dateEl = document.getElementById('eval-date');
+  const typeEl = document.getElementById('eval-type');
+  const errEl = document.getElementById('eval-err');
+  const btn = document.getElementById('eval-submit-btn');
+
+  if (errEl) errEl.innerHTML = '';
+
+  const video_url = urlEl ? urlEl.value.trim() : '';
+  if (!video_url) {
+    if (errEl) errEl.innerHTML = `<div class="alert alert-error">${ICONS.alertCircle} Please enter a video URL.</div>`;
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Submitting…'; }
+
+  try {
+    const result = await api('POST', '/eval/submit', {
+      video_url,
+      district_name: districtEl ? districtEl.value.trim() : '',
+      meeting_date: dateEl ? dateEl.value : '',
+      meeting_type: typeEl ? typeEl.value : 'Regular Board Meeting',
+    });
+    // Reload jobs list
+    await renderPortal();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = `${ICONS.video} Generate Evaluation`; }
+    if (errEl) errEl.innerHTML = `<div class="alert alert-error">${ICONS.alertCircle} ${escHtml(e.message)}</div>`;
+  }
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function statusBadge(status) {
+  const map = {
+    pending: ['badge-pending', 'Pending'],
+    processing: ['badge-processing', 'Processing…'],
+    complete: ['badge-complete', 'Complete'],
+    error: ['badge-error', 'Error'],
+  };
+  const [cls, label] = map[status] || ['badge-pending', status];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function renderJobItem(job) {
+  const district = job.district_name || 'Unnamed District';
+  const meta = [
+    job.meeting_date || '',
+    job.meeting_type || '',
+    formatDate(job.created_at),
+  ].filter(Boolean).join(' · ');
+
+  let actionHtml = '';
+  if (job.status === 'complete' && job.result_url) {
+    actionHtml = `<a href="${escHtml(job.result_url)}" class="btn btn-primary btn-sm" download>
+      ${ICONS.download} Download
+    </a>`;
+  } else if (job.status === 'error') {
+    actionHtml = `<span style="font-size:0.8rem;color:var(--esb-error);" title="${escHtml(job.error_msg||'')}">See details</span>`;
+  }
+
+  return `
+    <div class="job-item" id="job-${escHtml(job.id)}">
+      <div class="job-status-dot ${escHtml(job.status)}"></div>
+      <div class="job-info">
+        <div class="job-district">${escHtml(district)}</div>
+        <div class="job-meta">${escHtml(meta)}</div>
+      </div>
+      ${statusBadge(job.status)}
+      ${actionHtml}
+    </div>
+  `;
+}
+
+let pollTimer = null;
+
+async function renderPortal() {
+  const container = document.getElementById('main-content');
+  if (!container) return;
+
+  let jobs = [];
+  try { jobs = await api('GET', '/eval/jobs'); } catch(e) {}
+
+  const hasActive = jobs.some(j => j.status === 'pending' || j.status === 'processing');
+
+  // Setup polling for in-progress jobs
+  if (pollTimer) clearInterval(pollTimer);
+  if (hasActive) {
+    pollTimer = setInterval(async () => {
+      const fresh = await api('GET', '/eval/jobs').catch(() => null);
+      if (!fresh) return;
+      const stillActive = fresh.some(j => j.status === 'pending' || j.status === 'processing');
+      fresh.forEach(j => {
+        const el = document.getElementById(`job-${j.id}`);
+        if (el) el.outerHTML = renderJobItem(j);
+      });
+      if (!stillActive) { clearInterval(pollTimer); pollTimer = null; }
+    }, 8000);
+  }
+
+  container.innerHTML = `
+    <!-- Submit card -->
+    <div class="portal-card">
+      <div class="portal-card-title">${ICONS.video} Evaluate a Board Meeting</div>
+      <div class="portal-card-subtitle">
+        Paste a link to a public school board meeting video. We'll transcribe it,
+        classify how time was used, and generate a completed ESB Time Use Evaluation doc.
+      </div>
+
+      <div id="eval-err"></div>
+
+      <div class="form-group">
+        <label class="form-label" for="eval-url">Video URL</label>
+        <input class="form-input" type="url" id="eval-url"
+               placeholder="https://www.youtube.com/watch?v=…"
+               autocomplete="off"/>
+        <div style="font-size:0.75rem;color:var(--esb-text-muted);margin-top:4px;">
+          Supports YouTube, Granicus, Vimeo, Swagit, Cablecast, Facebook, and most public video links.
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="eval-district">School System Name</label>
+          <input class="form-input" type="text" id="eval-district"
+                 placeholder="Jefferson Parish Public School System"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="eval-date">Meeting Date</label>
+          <input class="form-input" type="date" id="eval-date"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="eval-type">Meeting Type</label>
+        <select class="form-input" id="eval-type">
+          <option value="Regular Board Meeting">Regular Board Meeting</option>
+          <option value="Special Board Meeting">Special Board Meeting</option>
+          <option value="Work Session">Work Session</option>
+          <option value="Committee Meeting">Committee Meeting</option>
+          <option value="Budget Hearing">Budget Hearing</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" id="eval-submit-btn" onclick="submitEval()">
+        ${ICONS.video} Generate Evaluation
+      </button>
+
+      <p style="font-size:0.8rem;color:var(--esb-text-muted);margin-top:12px;margin-bottom:0;">
+        Processing takes 5–15 minutes depending on video length.
+        You'll receive an email when your evaluation is ready.
+      </p>
+    </div>
+
+    <!-- Jobs card -->
+    <div class="portal-card">
+      <div class="portal-card-title">Your Evaluations</div>
+      <div id="jobs-list">
+        ${jobs.length === 0
+          ? `<div class="empty-state">
+               <div class="empty-state-icon">📋</div>
+               <div class="empty-state-title">No evaluations yet</div>
+               <p>Submit a meeting video above to get started.</p>
+             </div>`
+          : `<div class="job-list">${jobs.map(renderJobItem).join('')}</div>`
+        }
+      </div>
+    </div>
+  `;
+
+  // Attach enter key to URL field
+  const urlEl = document.getElementById('eval-url');
+  if (urlEl) urlEl.addEventListener('keydown', e => { if (e.key === 'Enter') submitEval(); });
+}
+
+// ── Main render ───────────────────────────────────────────────────────────────
+async function render() {
+  const container = document.getElementById('main-content');
+  if (!container) return;
+  if (!currentUser) {
+    container.innerHTML = renderSignIn();
+    // Attach event listeners
+    const emailEl = document.getElementById('otp-input-email');
+    const codeEl = document.getElementById('otp-input-code');
+    if (emailEl) emailEl.addEventListener('keydown', e => { if (e.key === 'Enter') requestOtp(); });
+    if (codeEl) {
+      codeEl.addEventListener('keydown', e => { if (e.key === 'Enter') verifyOtp(); });
+      codeEl.addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D/g,'').slice(0,6);
+      });
+    }
+  } else {
+    await renderPortal();
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  await loadUser();
+  renderUserStrip();
+  await render();
+})();
+</script>
+</body>
+</html>
