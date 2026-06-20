@@ -455,6 +455,7 @@ const ICONS = {
   plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
   flag: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
   book: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>`,
+  trash: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,01-2,2H8a2,2,0,01-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4a1,1,0,011-1h4a1,1,0,011,1v2"/></svg>`,
 };
 
 function escHtml(s) {
@@ -706,6 +707,11 @@ function renderJobItem(job) {
     actionHtml = `<span style="font-size:0.8rem;color:var(--esb-error);" title="${escHtml(job.error_msg||'')}">See details</span>`;
   }
 
+  const deleteBtn = `<button class="report-btn" onclick="deleteMyJob('${escHtml(job.id)}')"
+      title="Delete this evaluation" style="color:var(--esb-error);border-color:var(--esb-error);">
+      ${ICONS.trash} Delete
+    </button>`;
+
   return `
     <div class="job-item" id="job-${escHtml(job.id)}">
       <div class="job-status-dot ${escHtml(job.status)}"></div>
@@ -715,8 +721,20 @@ function renderJobItem(job) {
       </div>
       ${statusBadge(job.status)}
       ${actionHtml}
+      ${deleteBtn}
     </div>
   `;
+}
+
+async function deleteMyJob(jobId) {
+  if (!confirm('Delete this evaluation? This cannot be undone.')) return;
+  try {
+    await api('DELETE', `/eval/jobs/${jobId}`);
+    const el = document.getElementById(`job-${jobId}`);
+    if (el) el.remove();
+  } catch(e) {
+    alert('Could not delete: ' + e.message);
+  }
 }
 
 let pollTimer = null;
@@ -763,12 +781,32 @@ async function refreshRepository() {
                     onclick="reportBroken('${escHtml(r.id)}')" title="Report broken or missing link">
               ${ICONS.flag} Report
             </button>
+            ${currentUser?.role === 'superadmin'
+              ? `<button class="report-btn" id="del-repo-btn-${escHtml(r.id)}"
+                    onclick="deleteRepoItem('${escHtml(r.id)}')" title="Delete from repository"
+                    style="color:var(--esb-error);border-color:var(--esb-error);">
+                  ${ICONS.trash} Delete
+                </button>`
+              : ''}
           </td>
         </tr>
       `;
     }).join('');
   } catch(e) {
     el.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--esb-error);">Failed to load repository. ${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+async function deleteRepoItem(jobId) {
+  if (!confirm('Delete this evaluation from the repository? This cannot be undone.')) return;
+  const btn = document.getElementById(`del-repo-btn-${jobId}`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+  try {
+    await api('DELETE', `/repository/${jobId}`);
+    await refreshRepository();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = `${ICONS.trash} Delete`; }
+    alert('Could not delete: ' + e.message);
   }
 }
 
