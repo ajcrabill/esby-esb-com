@@ -638,12 +638,32 @@ function renderSignIn() {
   `;
 }
 
+// ── Span selector ─────────────────────────────────────────────────────────────
+function onSpanChange() {
+  const span = document.getElementById('eval-span')?.value || '1_meeting';
+  const urlLabel = document.getElementById('eval-url-label');
+  const urlHint = document.getElementById('eval-url-hint');
+  const dateRow = document.getElementById('eval-date-row');
+  const typeRow = document.getElementById('eval-type-row');
+  const submitLabel = document.getElementById('eval-submit-label');
+  const isMulti = span !== '1_meeting';
+  if (urlLabel) urlLabel.textContent = isMulti ? 'Recent Video URL (helps identify platform)' : 'Video URL';
+  if (urlHint) urlHint.textContent = isMulti
+    ? 'Paste any recent meeting URL — we\'ll auto-discover all meetings in the selected period.'
+    : 'Supports YouTube, Granicus, Vimeo, Swagit, Cablecast, Facebook, and most public video links.';
+  if (dateRow) dateRow.style.display = isMulti ? 'none' : '';
+  if (typeRow) typeRow.style.display = isMulti ? 'none' : '';
+  const labels = {'1_meeting':'Generate Evaluation','1_month':'Generate 1-Month Review','3_month':'Generate 3-Month Review','6_month':'Generate 6-Month Review'};
+  if (submitLabel) submitLabel.textContent = labels[span] || 'Generate Evaluation';
+}
+
 // ── Job submission form ───────────────────────────────────────────────────────
 async function submitEval() {
   const urlEl = document.getElementById('eval-url');
   const districtEl = document.getElementById('eval-district');
   const dateEl = document.getElementById('eval-date');
   const typeEl = document.getElementById('eval-type');
+  const spanEl = document.getElementById('eval-span');
   const errEl = document.getElementById('eval-err');
   const btn = document.getElementById('eval-submit-btn');
 
@@ -655,20 +675,24 @@ async function submitEval() {
     return;
   }
 
+  const review_span = spanEl ? spanEl.value : '1_meeting';
+  const isMulti = review_span !== '1_meeting';
+
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Submitting…'; }
 
   try {
     await api('POST', '/eval/submit', {
       video_url,
       district_name: districtEl ? districtEl.value.trim() : '',
-      meeting_date: dateEl ? dateEl.value : '',
-      meeting_type: typeEl ? typeEl.value : 'Regular Board Meeting',
+      meeting_date: (!isMulti && dateEl) ? dateEl.value : '',
+      meeting_type: (!isMulti && typeEl) ? typeEl.value : 'Regular Board Meeting',
+      review_span,
     });
     // Switch to My Evaluations to show status
     activeTab = 'myjobs';
     await renderPortal();
   } catch(e) {
-    if (btn) { btn.disabled = false; btn.innerHTML = `${ICONS.video} Generate Evaluation`; }
+    if (btn) { btn.disabled = false; btn.innerHTML = `${ICONS.video} <span id="eval-submit-label">${review_span === '1_meeting' ? 'Generate Evaluation' : 'Generate ' + review_span.replace('_',' ').replace('month','Month') + ' Review'}</span>`; }
     if (errEl) errEl.innerHTML = `<div class="alert alert-error">${ICONS.alertCircle} ${escHtml(e.message)}</div>`;
   }
 }
@@ -692,11 +716,18 @@ function statusBadge(status) {
 
 function renderJobItem(job) {
   const district = job.district_name || 'Unnamed District';
+  const spanLabels = {'1_meeting':'','1_month':'1-Month Review','3_month':'3-Month Review','6_month':'6-Month Review'};
+  const spanTag = job.review_span && job.review_span !== '1_meeting'
+    ? `<span style="font-size:0.7rem;font-weight:600;color:var(--esb-blue);background:var(--esb-bg);border:1px solid var(--esb-border);border-radius:3px;padding:1px 5px;margin-left:5px;">${spanLabels[job.review_span]||''}</span>`
+    : '';
+  const meetingsTag = job.meetings_analyzed
+    ? ` · ${job.meetings_analyzed} meetings`
+    : '';
   const meta = [
     job.meeting_date || '',
-    job.meeting_type || '',
+    job.review_span === '1_meeting' ? (job.meeting_type || '') : '',
     formatDate(job.created_at),
-  ].filter(Boolean).join(' · ');
+  ].filter(Boolean).join(' · ') + meetingsTag;
 
   let actionHtml = '';
   if (job.status === 'complete' && job.result_url) {
@@ -716,7 +747,7 @@ function renderJobItem(job) {
     <div class="job-item" id="job-${escHtml(job.id)}">
       <div class="job-status-dot ${escHtml(job.status)}"></div>
       <div class="job-info">
-        <div class="job-district">${escHtml(district)}</div>
+        <div class="job-district">${escHtml(district)}${spanTag}</div>
         <div class="job-meta">${escHtml(meta)}</div>
       </div>
       ${statusBadge(job.status)}
@@ -883,19 +914,45 @@ async function renderPortal() {
       <div class="portal-card">
         <div class="portal-card-title">Evaluate a Board Meeting</div>
         <div class="portal-card-subtitle">
-          Paste a link to a public school board meeting video. We'll transcribe it,
-          classify how time was used, and generate a completed ESB Time Use Evaluation doc.
-          When it's done, it goes into the Repository — check back in about 30 minutes.
+          Paste a link to a public school board meeting video and choose a review span.
+          Single meeting: time-use classification and coaching doc. Multi-month: governance
+          scoring (5 criteria, 100 pts) across all meetings in the period, auto-discovered.
         </div>
 
         <div id="eval-err"></div>
 
         <div class="form-group">
-          <label class="form-label" for="eval-url">Video URL</label>
+          <label class="form-label">Review Span</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:1.5px solid var(--esb-border-strong);border-radius:6px;font-size:0.85rem;font-weight:600;transition:all 0.15s;" id="span-opt-1_meeting">
+              <input type="radio" name="eval-span-radio" value="1_meeting" id="eval-span-1_meeting" checked onchange="document.getElementById('eval-span').value=this.value;onSpanChange();updateSpanLabels();" style="display:none;">
+              1 Meeting
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:1.5px solid var(--esb-border);border-radius:6px;font-size:0.85rem;font-weight:600;color:var(--esb-text-secondary);transition:all 0.15s;" id="span-opt-1_month">
+              <input type="radio" name="eval-span-radio" value="1_month" id="eval-span-1_month" onchange="document.getElementById('eval-span').value=this.value;onSpanChange();updateSpanLabels();" style="display:none;">
+              1 Month
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:1.5px solid var(--esb-border);border-radius:6px;font-size:0.85rem;font-weight:600;color:var(--esb-text-secondary);transition:all 0.15s;" id="span-opt-3_month">
+              <input type="radio" name="eval-span-radio" value="3_month" id="eval-span-3_month" onchange="document.getElementById('eval-span').value=this.value;onSpanChange();updateSpanLabels();" style="display:none;">
+              3 Months
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:1.5px solid var(--esb-border);border-radius:6px;font-size:0.85rem;font-weight:600;color:var(--esb-text-secondary);transition:all 0.15s;" id="span-opt-6_month">
+              <input type="radio" name="eval-span-radio" value="6_month" id="eval-span-6_month" onchange="document.getElementById('eval-span').value=this.value;onSpanChange();updateSpanLabels();" style="display:none;">
+              6 Months
+            </label>
+          </div>
+          <input type="hidden" id="eval-span" value="1_meeting">
+          <div id="span-hint-multi" style="display:none;font-size:0.75rem;color:var(--esb-blue);margin-top:6px;font-style:italic;">
+            Scores 5 governance criteria (Focus Mindset, Clarify Priorities, Monitor Progress, Align Resources, Communicate Results) across all meetings in the period.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" id="eval-url-label" for="eval-url">Video URL</label>
           <input class="form-input" type="url" id="eval-url"
                  placeholder="https://www.youtube.com/watch?v=…"
                  autocomplete="off"/>
-          <div style="font-size:0.75rem;color:var(--esb-text-muted);margin-top:4px;">
+          <div id="eval-url-hint" style="font-size:0.75rem;color:var(--esb-text-muted);margin-top:4px;">
             Supports YouTube, Granicus, Vimeo, Swagit, Cablecast, Facebook, and most public video links.
           </div>
         </div>
@@ -906,13 +963,13 @@ async function renderPortal() {
             <input class="form-input" type="text" id="eval-district"
                    placeholder="Jefferson Parish Public School System"/>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="eval-date-row">
             <label class="form-label" for="eval-date">Meeting Date</label>
             <input class="form-input" type="date" id="eval-date"/>
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="eval-type-row">
           <label class="form-label" for="eval-type">Meeting Type</label>
           <select class="form-input" id="eval-type">
             <option value="Regular Board Meeting">Regular Board Meeting</option>
@@ -925,15 +982,41 @@ async function renderPortal() {
         </div>
 
         <button class="btn btn-primary" id="eval-submit-btn" onclick="submitEval()">
-          ${ICONS.video} Generate Evaluation
+          ${ICONS.video} <span id="eval-submit-label">Generate Evaluation</span>
         </button>
 
-        <p style="font-size:0.8rem;color:var(--esb-text-muted);margin-top:12px;margin-bottom:0;">
+        <p style="font-size:0.8rem;color:var(--esb-text-muted);margin-top:12px;margin-bottom:0;" id="eval-time-hint">
           Processing takes 5–15 minutes depending on video length.
           You'll get an email with a link to the Repository when it's ready.
         </p>
       </div>
     </div>
+    <script>
+    function updateSpanLabels() {
+      const val = document.getElementById('eval-span').value;
+      ['1_meeting','1_month','3_month','6_month'].forEach(v => {
+        const el = document.getElementById('span-opt-' + v);
+        if (!el) return;
+        if (v === val) {
+          el.style.borderColor = 'var(--esb-blue)';
+          el.style.color = 'var(--esb-blue)';
+          el.style.background = 'var(--esb-bg)';
+        } else {
+          el.style.borderColor = 'var(--esb-border)';
+          el.style.color = 'var(--esb-text-secondary)';
+          el.style.background = '';
+        }
+      });
+      const isMulti = val !== '1_meeting';
+      const hint = document.getElementById('span-hint-multi');
+      if (hint) hint.style.display = isMulti ? '' : 'none';
+      const timeHint = document.getElementById('eval-time-hint');
+      if (timeHint) timeHint.textContent = isMulti
+        ? 'Multi-meeting reviews auto-discover all public meetings in the period. Processing takes 30–90 minutes. You\'ll get an email when it\'s ready.'
+        : 'Processing takes 5–15 minutes depending on video length. You\'ll get an email with a link to the Repository when it\'s ready.';
+    }
+    updateSpanLabels();
+    </script>
 
     <!-- My Evaluations tab -->
     <div class="tab-panel ${activeTab==='myjobs'?'active':''}" id="tab-myjobs">
