@@ -134,6 +134,12 @@
   .ca-editor-label { font-size:0.72rem; font-weight:600; color:var(--esb-text-muted); text-transform:uppercase; letter-spacing:0.04em; }
   .ca-editor { flex:1; width:100%; resize:none; font-family:'Courier New',Courier,monospace; font-size:0.8rem; line-height:1.5; padding:10px 12px; border:1px solid var(--esb-border-strong); border-radius:var(--radius-sm); color:var(--esb-text); background:#fafbfc; min-height:0; }
   .ca-editor:focus { outline:none; border-color:var(--esb-blue); background:#fff; }
+  .ca-view-tabs { display:flex; gap:0; flex-shrink:0; border-bottom:1px solid var(--esb-border); margin:0 -20px 0; padding:0 20px; }
+  .ca-view-tab { padding:6px 16px; font-size:0.78rem; font-weight:600; border:none; background:none; cursor:pointer; color:var(--esb-text-muted); border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .ca-view-tab.active { color:var(--esb-blue); border-bottom-color:var(--esb-blue); }
+  .ca-preview { flex:1; border:1px solid var(--esb-border-strong); border-radius:var(--radius-sm); background:#fff; min-height:0; display:none; }
+  .ca-preview.visible { display:block; }
+  .ca-editor.hidden { display:none; }
   .ca-panel-footer { flex-shrink:0; border-top:1px solid var(--esb-border); padding:14px 20px; display:flex; flex-direction:column; gap:10px; }
   .ca-save-row { display:flex; align-items:center; justify-content:space-between; }
   .ca-action-row { display:flex; gap:8px; flex-wrap:wrap; }
@@ -451,8 +457,9 @@ function renderAdminUI() {
     '<button class="ca-panel-close" onclick="caPanelClose()" title="Close">✕</button>' +
     '</div>' +
     '<div class="ca-editor-wrap">' +
-    '<div style="flex-shrink:0;"><span class="ca-editor-label">HTML Content</span></div>' +
+    '<div class="ca-view-tabs"><button class="ca-view-tab active" id="ca-tab-source" onclick="caSetView(\'source\')">Source</button><button class="ca-view-tab" id="ca-tab-preview" onclick="caSetView(\'preview\')">Preview</button></div>' +
     '<textarea class="ca-editor" id="ca-editor" placeholder="Loading…" oninput="caEditorDirty=true;caUpdateSaveBtn()"></textarea>' +
+    '<iframe class="ca-preview" id="ca-preview" sandbox="allow-same-origin"></iframe>' +
     '</div>' +
     '<div class="ca-panel-footer">' +
     '<div class="ca-save-row">' +
@@ -531,9 +538,31 @@ function renderCaTable() {
   }).join('');
 }
 
+function caSetView(view) {
+  const editor = document.getElementById('ca-editor');
+  const preview = document.getElementById('ca-preview');
+  const tabSrc = document.getElementById('ca-tab-source');
+  const tabPre = document.getElementById('ca-tab-preview');
+  if (view === 'preview') {
+    if (preview) {
+      preview.srcdoc = '<style>body{font-family:Georgia,serif;font-size:14px;line-height:1.6;padding:20px;margin:0;color:#1a2533}h1,h2,h3{color:#2c3e50}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px 10px}img{max-width:100%}</style>' + (editor ? editor.value : '');
+      preview.classList.add('visible');
+    }
+    if (editor) editor.classList.add('hidden');
+    if (tabSrc) tabSrc.classList.remove('active');
+    if (tabPre) tabPre.classList.add('active');
+  } else {
+    if (preview) preview.classList.remove('visible');
+    if (editor) editor.classList.remove('hidden');
+    if (tabSrc) tabSrc.classList.add('active');
+    if (tabPre) tabPre.classList.remove('active');
+  }
+}
+
 async function caPanelOpen(id) {
   const ov = document.getElementById('ca-panel-overlay'); if(ov) ov.classList.add('open');
   const pn = document.getElementById('ca-panel'); if(pn) pn.classList.add('open');
+  caSetView('source');
   const editorEl = document.getElementById('ca-editor');
   if (editorEl) editorEl.value = 'Loading…';
   let item;
