@@ -385,7 +385,7 @@ function renderAccessDenied() {
 
 // ── Drafts state ─────────────────────────────────────────────────────────────
 let caItems = [];
-let caFilter = { site: '', search: '' };
+let caFilter = { site: '', status: 'pending', search: '' };
 let caSelectedItem = null;
 let caEditorDirty = false;
 let caAutoRefresh = null;
@@ -410,6 +410,11 @@ function renderAdminUI() {
   document.getElementById('main-content').innerHTML =
     '<div class="portal-card">' +
     '<div class="ca-filter-bar">' +
+    '<select class="ca-select" id="ca-status-filter" onchange="caFilter.status=this.value;loadDrafts()">' +
+    '<option value="pending">Pending</option>' +
+    '<option value="published">Published</option>' +
+    '<option value="rejected">Rejected</option>' +
+    '</select>' +
     '<select class="ca-select" id="ca-site-filter" onchange="caFilter.site=this.value;renderCaTable()">' +
     '<option value="">All Sites</option>' +
     '<option value="schoolboardanswers">schoolboardanswers</option>' +
@@ -469,6 +474,9 @@ function renderAdminUI() {
     });
   }
 
+  const statusEl = document.getElementById('ca-status-filter');
+  if (statusEl) statusEl.value = caFilter.status;
+
   loadDrafts();
   if (caAutoRefresh) clearInterval(caAutoRefresh);
   caAutoRefresh = setInterval(function() { loadDrafts(true); }, 120000);
@@ -481,10 +489,10 @@ async function loadDrafts(silent) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;"><div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div></td></tr>';
   }
   try {
-    const data = await apiCall('GET', '/api/drafts');
+    const data = await apiCall('GET', '/api/drafts?status=' + encodeURIComponent(caFilter.status));
     caItems = Array.isArray(data) ? data : [];
     renderCaTable();
-    const pending = caItems.length;
+    const pending = caItems.filter(function(i) { return i.status === 'pending'; }).length;
     document.title = (pending > 0 ? '(' + pending + ') ' : '') + 'Content Approvals — ESB Admin';
   } catch(e) {
     if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--esb-error);">Failed to load: ' + escHtml(e.message) + '</td></tr>';
@@ -515,8 +523,9 @@ function renderCaTable() {
       '<td style="white-space:nowrap;font-size:0.85rem;font-weight:600;' + scoreCls + '">' + score + '</td>' +
       '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caRelTime(item.created_at) + '</td>' +
       '<td onclick="event.stopPropagation()" style="white-space:nowrap;">' +
-      '<button class="ca-quick-btn ca-quick-approve" onclick="caQuickApprove(\'' + item.id + '\')" title="Approve">✓</button>' +
-      '<button class="ca-quick-btn ca-quick-deny" onclick="caQuickReject(\'' + item.id + '\')" title="Reject">✗</button>' +
+      (item.status === 'pending' ?
+        '<button class="ca-quick-btn ca-quick-approve" onclick="caQuickApprove(\'' + item.id + '\')" title="Approve">✓</button>' +
+        '<button class="ca-quick-btn ca-quick-deny" onclick="caQuickReject(\'' + item.id + '\')" title="Reject">✗</button>' : '') +
       '<button class="report-btn" onclick="caPanelOpen(\'' + item.id + '\')">Open</button>' +
       '</td></tr>';
   }).join('');
@@ -557,9 +566,11 @@ function caRenderPanelActions() {
   const row = document.getElementById('ca-action-row');
   if (!row || !caSelectedItem) return;
   const id = caSelectedItem.id;
-  row.innerHTML =
+  const isPending = caSelectedItem.status === 'pending';
+  row.innerHTML = isPending ?
     '<button class="btn btn-sm" style="background:#276749;color:#fff;" onclick="caApprove(\'' + id + '\')">✓ Approve &amp; Publish</button>' +
-    '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caReject(\'' + id + '\')">✗ Reject</button>';
+    '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caReject(\'' + id + '\')">✗ Reject</button>' :
+    '<span style="font-size:0.85rem;color:var(--esb-text-muted);font-style:italic;">Read-only — status is ' + escHtml(caSelectedItem.status) + '</span>';
 }
 
 async function caSaveBody() {
