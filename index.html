@@ -942,6 +942,30 @@ async function refreshMyJobs(jobs) {
     : `<div class="job-list">${jobs.map(renderJobItem).join('')}</div>`;
 }
 
+function updateSpanLabels() {
+  const val = document.getElementById('eval-span').value;
+  ['1_meeting','1_month','3_month','6_month'].forEach(v => {
+    const el = document.getElementById('span-opt-' + v);
+    if (!el) return;
+    if (v === val) {
+      el.style.borderColor = 'var(--esb-blue)';
+      el.style.color = 'var(--esb-blue)';
+      el.style.background = 'var(--esb-bg)';
+    } else {
+      el.style.borderColor = 'var(--esb-border)';
+      el.style.color = 'var(--esb-text-secondary)';
+      el.style.background = '';
+    }
+  });
+  const isMulti = val !== '1_meeting';
+  const hint = document.getElementById('span-hint-multi');
+  if (hint) hint.style.display = isMulti ? '' : 'none';
+  const timeHint = document.getElementById('eval-time-hint');
+  if (timeHint) timeHint.textContent = isMulti
+    ? 'Multi-meeting reviews auto-discover all public meetings in the period. Processing takes 30-90 minutes. You will get an email when ready.'
+    : 'Processing takes 5-15 minutes depending on video length. You will get an email with a link to the Repository when ready.';
+}
+
 async function renderPortal() {
   const container = document.getElementById('main-content');
   if (!container) return;
@@ -1046,32 +1070,6 @@ async function renderPortal() {
         </p>
       </div>
     </div>
-    <script>
-    function updateSpanLabels() {
-      const val = document.getElementById('eval-span').value;
-      ['1_meeting','1_month','3_month','6_month'].forEach(v => {
-        const el = document.getElementById('span-opt-' + v);
-        if (!el) return;
-        if (v === val) {
-          el.style.borderColor = 'var(--esb-blue)';
-          el.style.color = 'var(--esb-blue)';
-          el.style.background = 'var(--esb-bg)';
-        } else {
-          el.style.borderColor = 'var(--esb-border)';
-          el.style.color = 'var(--esb-text-secondary)';
-          el.style.background = '';
-        }
-      });
-      const isMulti = val !== '1_meeting';
-      const hint = document.getElementById('span-hint-multi');
-      if (hint) hint.style.display = isMulti ? '' : 'none';
-      const timeHint = document.getElementById('eval-time-hint');
-      if (timeHint) timeHint.textContent = isMulti
-        ? 'Multi-meeting reviews auto-discover all public meetings in the period. Processing takes 30–90 minutes. You\'ll get an email when it\'s ready.'
-        : 'Processing takes 5–15 minutes depending on video length. You\'ll get an email with a link to the Repository when it\'s ready.';
-    }
-    updateSpanLabels();
-    </script>
 
     <!-- My Evaluations tab -->
     <div class="tab-panel ${activeTab==='myjobs'?'active':''}" id="tab-myjobs">
@@ -1114,6 +1112,7 @@ async function renderPortal() {
     ${currentUser && currentUser.role === 'superadmin' ? '<div class="tab-panel ' + (activeTab==='content'?'active':'') + '" id="tab-content"><div id="ca-root"></div></div>' : ''}
   `;
 
+  updateSpanLabels();
   // Populate tabs
   await refreshMyJobs(jobs);
   if (activeTab === 'repository') refreshRepository();
