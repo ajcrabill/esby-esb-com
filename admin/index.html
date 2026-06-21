@@ -489,7 +489,7 @@ async function loadDrafts(silent) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;"><div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div></td></tr>';
   }
   try {
-    const data = await apiCall('GET', '/api/drafts?status=' + encodeURIComponent(caFilter.status));
+    const data = await apiCall('GET', '/admin/api/drafts?status=' + encodeURIComponent(caFilter.status));
     caItems = Array.isArray(data) ? data : [];
     renderCaTable();
     const pending = caItems.filter(function(i) { return i.status === 'pending'; }).length;
@@ -537,7 +537,7 @@ async function caPanelOpen(id) {
   const editorEl = document.getElementById('ca-editor');
   if (editorEl) editorEl.value = 'Loading…';
   let item;
-  try { item = await apiCall('GET', '/api/draft/' + id); }
+  try { item = await apiCall('GET', '/admin/api/draft/' + id); }
   catch(e) { alert('Could not load draft: ' + e.message); caPanelClose(); return; }
   caSelectedItem = item; caEditorDirty = false;
   const titleEl = document.getElementById('ca-panel-title');
@@ -579,7 +579,7 @@ async function caSaveBody() {
   const btn = document.getElementById('ca-save-btn');
   if (btn) { btn.disabled=true; btn.textContent='Saving…'; }
   try {
-    await apiCall('PUT', '/api/draft/' + caSelectedItem.id, { title: caSelectedItem.title, html_content: html, meta: JSON.parse(caSelectedItem.meta_json || '{}') });
+    await apiCall('PUT', '/admin/api/draft/' + caSelectedItem.id, { title: caSelectedItem.title, html_content: html, meta: JSON.parse(caSelectedItem.meta_json || '{}') });
     caEditorDirty = false; caUpdateSaveBtn();
     if (btn) btn.textContent = 'Save';
   } catch(e) {
@@ -589,25 +589,25 @@ async function caSaveBody() {
 }
 
 async function caApprove(id) {
-  try { await apiCall('POST', '/api/draft/' + id + '/approve'); caPanelClose(); await loadDrafts(); }
+  try { await apiCall('POST', '/admin/api/draft/' + id + '/approve'); caPanelClose(); await loadDrafts(); }
   catch(e) { alert('Approve failed: ' + e.message); }
 }
 
 async function caQuickApprove(id) {
   if (!confirm('Approve and publish this draft?')) return;
-  try { await apiCall('POST', '/api/draft/' + id + '/approve'); await loadDrafts(); }
+  try { await apiCall('POST', '/admin/api/draft/' + id + '/approve'); await loadDrafts(); }
   catch(e) { alert('Approve failed: ' + e.message); }
 }
 
 async function caReject(id) {
   if (!confirm('Reject this draft? It will be discarded.')) return;
-  try { await apiCall('POST', '/api/draft/' + id + '/reject'); caPanelClose(); await loadDrafts(); }
+  try { await apiCall('POST', '/admin/api/draft/' + id + '/reject'); caPanelClose(); await loadDrafts(); }
   catch(e) { alert('Reject failed: ' + e.message); }
 }
 
 async function caQuickReject(id) {
   if (!confirm('Reject this draft?')) return;
-  try { await apiCall('POST', '/api/draft/' + id + '/reject'); await loadDrafts(); }
+  try { await apiCall('POST', '/admin/api/draft/' + id + '/reject'); await loadDrafts(); }
   catch(e) { alert('Reject failed: ' + e.message); }
 }
 
