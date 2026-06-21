@@ -384,85 +384,58 @@ function renderAccessDenied() {
     '</div>';
 }
 
-// ── Content Approvals state ───────────────────────────────────────────────────
+// ── Drafts state ─────────────────────────────────────────────────────────────
 let caItems = [];
-let caSort = { field: 'staged_at', dir: 'desc' };
-let caFilter = { site: '', status: 'pending', search: '' };
+let caFilter = { site: '', search: '' };
 let caSelectedItem = null;
 let caEditorDirty = false;
-let caPendingCount = 0;
 let caAutoRefresh = null;
-let caDenyTarget = null;
-let caCountdownTimer = null;
 
-function caRelTime(iso) {
-  if (!iso) return '—';
-  const s = (Date.now() - new Date(iso)) / 1000;
+function caRelTime(epoch) {
+  if (!epoch) return '—';
+  const s = (Date.now() / 1000) - epoch;
   if (s < 60) return 'just now';
   if (s < 3600) return Math.floor(s/60) + 'm ago';
   if (s < 86400) return Math.floor(s/3600) + 'h ago';
   return Math.floor(s/86400) + 'd ago';
 }
 
-function caCountdown(iso) {
-  if (!iso) return { text: '—', cls: '' };
-  const ms = new Date(iso) - Date.now();
-  if (ms <= 0) return { text: 'Expired', cls: 'expired' };
-  const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
-  return { text: h > 0 ? h+'h '+m+'m left' : m+'m left', cls: ms < 3600000 ? 'urgent' : '' };
-}
-
 function caStatusBadge(status) {
-  const map = { pending:['ca-badge-pending','Pending'], live:['ca-badge-live','Live'], denied:['ca-badge-denied','Denied'], held:['ca-badge-held','Held'] };
-  const [cls, label] = map[status] || ['ca-badge-pending', status];
-  return '<span class="badge ' + cls + '">' + label + '</span>';
+  const map = { pending:['ca-badge-pending','Pending'], published:['ca-badge-live','Published'], rejected:['ca-badge-denied','Rejected'] };
+  const e = map[status] || ['ca-badge-pending', status];
+  return '<span class="badge ' + e[0] + '">' + e[1] + '</span>';
 }
 
-function caSortBy(field) {
-  if (caSort.field === field) caSort.dir = caSort.dir === 'asc' ? 'desc' : 'asc';
-  else { caSort.field = field; caSort.dir = 'desc'; }
-  loadContentItems();
-}
-
-// ── Content Approvals UI ──────────────────────────────────────────────────────
+// ── Drafts UI ─────────────────────────────────────────────────────────────────
 function renderAdminUI() {
   document.getElementById('main-content').innerHTML =
     '<div class="portal-card">' +
     '<div class="ca-filter-bar">' +
-    '<select class="ca-select" id="ca-site-filter" onchange="caFilter.site=this.value;loadContentItems()">' +
+    '<select class="ca-select" id="ca-site-filter" onchange="caFilter.site=this.value;renderCaTable()">' +
     '<option value="">All Sites</option>' +
-    '<option value="schoolboardanswers">schoolboardanswers.com</option>' +
-    '<option value="effectivegoverningboards">effectivegoverningboards.com</option>' +
-    '<option value="schoolboardreport">schoolboardreport.com</option>' +
-    '<option value="schoolboardresearch">schoolboardresearch.com</option>' +
-    '<option value="schoolboardreview">schoolboardreview.com</option>' +
-    '<option value="schoolboardweekly">schoolboardweekly.com</option>' +
-    '<option value="creatingoutcomes">creatingoutcomes.com</option>' +
-    '<option value="governthefuture">governthefuture.com</option>' +
-    '<option value="effectiveboards">effective-boards.com</option>' +
+    '<option value="schoolboardanswers">schoolboardanswers</option>' +
+    '<option value="effectivegoverningboards">effectivegoverningboards</option>' +
+    '<option value="schoolboardreport">schoolboardreport</option>' +
+    '<option value="schoolboardresearch">schoolboardresearch</option>' +
+    '<option value="schoolboardreview">schoolboardreview</option>' +
+    '<option value="schoolboardweekly">schoolboardweekly</option>' +
+    '<option value="creatingoutcomes">creatingoutcomes</option>' +
+    '<option value="governthefuture">governthefuture</option>' +
+    '<option value="effectiveboards">effectiveboards</option>' +
     '</select>' +
-    '<select class="ca-select" id="ca-status-filter" onchange="caFilter.status=this.value;loadContentItems()">' +
-    '<option value="">All Status</option>' +
-    '<option value="pending">Pending</option>' +
-    '<option value="live">Live</option>' +
-    '<option value="held">Held</option>' +
-    '<option value="denied">Denied</option>' +
-    '</select>' +
-    '<input class="ca-search" type="search" id="ca-search" placeholder="Search title…" oninput="caFilter.search=this.value;loadContentItems()">' +
+    '<input class="ca-search" type="search" id="ca-search" placeholder="Search title…" oninput="caFilter.search=this.value;renderCaTable()">' +
     '<span id="ca-count-label" style="font-size:0.8rem;color:var(--esb-text-muted);white-space:nowrap;"></span>' +
-    '<button class="btn btn-ghost btn-sm" onclick="loadContentItems()" style="white-space:nowrap;">↻ Refresh</button>' +
+    '<button class="btn btn-ghost btn-sm" onclick="loadDrafts()" style="white-space:nowrap;">↻ Refresh</button>' +
     '</div>' +
     '<div style="overflow-x:auto;">' +
     '<table class="ca-table"><thead><tr>' +
-    '<th onclick="caSortBy(\'site\')">Site <span id="ca-sort-site" class="ca-sort-arrow"></span></th>' +
-    '<th onclick="caSortBy(\'title\')">Title <span id="ca-sort-title" class="ca-sort-arrow"></span></th>' +
-    '<th>Type</th>' +
-    '<th onclick="caSortBy(\'status\')">Status <span id="ca-sort-status" class="ca-sort-arrow"></span></th>' +
-    '<th onclick="caSortBy(\'staged_at\')">Staged <span id="ca-sort-staged_at" class="ca-sort-arrow"></span></th>' +
-    '<th>Expires</th>' +
+    '<th>Site</th>' +
+    '<th>Title</th>' +
+    '<th>Score</th>' +
+    '<th>Submitted</th>' +
     '<th>Actions</th>' +
     '</tr></thead>' +
-    '<tbody id="ca-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;">' +
+    '<tbody id="ca-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;">' +
     '<div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div>' +
     '</td></tr></tbody></table></div></div>' +
 
@@ -474,40 +447,16 @@ function renderAdminUI() {
     '<button class="ca-panel-close" onclick="caPanelClose()" title="Close">✕</button>' +
     '</div>' +
     '<div class="ca-editor-wrap">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
-    '<span class="ca-editor-label">Content Body</span>' +
-    '<button class="btn btn-ghost btn-sm" onclick="caShowGuide()" style="font-size:0.75rem;padding:4px 10px;">' + ICONS.book + ' Guide</button>' +
-    '</div>' +
+    '<div style="flex-shrink:0;"><span class="ca-editor-label">HTML Content</span></div>' +
     '<textarea class="ca-editor" id="ca-editor" placeholder="Loading…" oninput="caEditorDirty=true;caUpdateSaveBtn()"></textarea>' +
     '</div>' +
     '<div class="ca-panel-footer">' +
     '<div class="ca-save-row">' +
-    '<span class="ca-countdown" id="ca-panel-countdown"></span>' +
-    '<button class="btn btn-sm btn-ghost" id="ca-save-btn" onclick="caSaveBody()" disabled>Save Edits</button>' +
+    '<span id="ca-quality-notes" style="font-size:0.78rem;color:var(--esb-text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>' +
+    '<button class="btn btn-sm btn-ghost" id="ca-save-btn" onclick="caSaveBody()" disabled>Save</button>' +
     '</div>' +
     '<div class="ca-action-row" id="ca-action-row"></div>' +
-    '</div></div>' +
-
-    '<div class="ca-modal-overlay" id="ca-guide-modal">' +
-    '<div class="ca-modal">' +
-    '<div class="ca-modal-head"><span class="ca-modal-title" id="ca-guide-title">Content Guide</span>' +
-    '<button class="ca-panel-close" onclick="caCloseGuide()">✕</button></div>' +
-    '<div class="ca-modal-body" id="ca-guide-body">' +
-    '<div class="loading-state" style="justify-content:center;padding:40px;"><div class="spinner"></div> Loading…</div>' +
-    '</div></div></div>' +
-
-    '<div class="ca-deny-overlay" id="ca-deny-overlay">' +
-    '<div class="ca-deny-modal">' +
-    '<div style="font-weight:700;font-size:1rem;color:var(--esb-dark);margin-bottom:8px;">Deny Content</div>' +
-    '<p style="font-size:0.875rem;color:var(--esb-text-muted);margin:0 0 16px;">Optionally add a note explaining the denial.</p>' +
-    '<textarea id="ca-deny-notes" class="form-input" style="height:90px;resize:vertical;font-size:0.875rem;" placeholder="Optional notes…"></textarea>' +
-    '<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">' +
-    '<button class="btn btn-ghost btn-sm" onclick="caCloseDenyModal()">Cancel</button>' +
-    '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caConfirmDeny()">Deny</button>' +
-    '</div></div></div>';
-
-  const statusEl = document.getElementById('ca-status-filter');
-  if (statusEl) statusEl.value = caFilter.status || 'pending';
+    '</div></div>';
 
   const editorEl = document.getElementById('ca-editor');
   if (editorEl) {
@@ -521,87 +470,81 @@ function renderAdminUI() {
     });
   }
 
-  loadContentItems();
+  loadDrafts();
   if (caAutoRefresh) clearInterval(caAutoRefresh);
-  caAutoRefresh = setInterval(function() { loadContentItems(true); }, 120000);
+  caAutoRefresh = setInterval(function() { loadDrafts(true); }, 120000);
 }
 
-async function loadContentItems(silent) {
+async function loadDrafts(silent) {
   const tbody = document.getElementById('ca-tbody');
   if (!tbody) return;
   if (!silent) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;"><div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;"><div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div></td></tr>';
   }
   try {
-    const params = new URLSearchParams();
-    if (caFilter.site) params.set('site', caFilter.site);
-    if (caFilter.status) params.set('status', caFilter.status);
-    if (caFilter.search) params.set('search', caFilter.search);
-    params.set('sort_by', caSort.field);
-    params.set('sort_dir', caSort.dir);
-    const data = await apiCall('GET', '/api/content/items?' + params);
-    caItems = data.items || [];
-    caPendingCount = data.pending_count || 0;
+    const data = await apiCall('GET', '/api/drafts');
+    caItems = Array.isArray(data) ? data : [];
     renderCaTable();
-    document.title = (caPendingCount > 0 ? '(' + caPendingCount + ') ' : '') + 'Content Approvals — ESB Admin';
+    const pending = caItems.length;
+    document.title = (pending > 0 ? '(' + pending + ') ' : '') + 'Content Approvals — ESB Admin';
   } catch(e) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--esb-error);">Failed to load: ' + escHtml(e.message) + '</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--esb-error);">Failed to load: ' + escHtml(e.message) + '</td></tr>';
   }
 }
 
 function renderCaTable() {
   const tbody = document.getElementById('ca-tbody');
   if (!tbody) return;
-  ['site','title','status','staged_at'].forEach(function(f) {
-    const el = document.getElementById('ca-sort-' + f);
-    if (el) el.textContent = caSort.field === f ? (caSort.dir === 'asc' ? '▲' : '▼') : '';
-  });
+  let items = caItems;
+  if (caFilter.site) items = items.filter(function(i) { return i.site_id === caFilter.site; });
+  if (caFilter.search) {
+    const q = caFilter.search.toLowerCase();
+    items = items.filter(function(i) { return (i.title||'').toLowerCase().includes(q); });
+  }
   const countEl = document.getElementById('ca-count-label');
-  if (countEl) countEl.textContent = caItems.length + ' item' + (caItems.length !== 1 ? 's' : '') + (caPendingCount > 0 ? ' · ' + caPendingCount + ' pending' : '');
-  if (!caItems.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No items</div><p>Content will appear here when agents submit drafts.</p></div></td></tr>';
+  if (countEl) countEl.textContent = items.length + ' pending';
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No pending drafts</div><p>Content will appear here when agents submit drafts.</p></div></td></tr>';
     return;
   }
-  tbody.innerHTML = caItems.map(function(item) {
-    const cd = item.expires_at ? caCountdown(item.expires_at) : { text: '—', cls: '' };
-    const qa = item.status === 'pending'
-      ? '<button class="ca-quick-btn ca-quick-approve" onclick="event.stopPropagation();caQuickApprove(' + item.id + ')" title="Approve">✓</button>' +
-        '<button class="ca-quick-btn ca-quick-deny" onclick="event.stopPropagation();caOpenDenyModal(' + item.id + ')" title="Deny">✗</button>'
-      : '';
-    return '<tr onclick="caPanelOpen(' + item.id + ')">' +
-      '<td><span style="font-size:0.78rem;font-weight:600;">' + escHtml(item.site) + '</span></td>' +
-      '<td style="max-width:280px;"><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(item.title) + '</span></td>' +
-      '<td><span style="font-size:0.72rem;color:var(--esb-text-muted);">' + escHtml(item.content_type || '—') + '</span></td>' +
-      '<td>' + caStatusBadge(item.status) + '</td>' +
-      '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caRelTime(item.staged_at) + '</td>' +
-      '<td style="white-space:nowrap;"><span class="ca-countdown ' + cd.cls + '">' + cd.text + '</span></td>' +
-      '<td onclick="event.stopPropagation()" style="white-space:nowrap;">' + qa + '<button class="report-btn" onclick="caPanelOpen(' + item.id + ')">Open</button></td>' +
-      '</tr>';
+  tbody.innerHTML = items.map(function(item) {
+    const score = item.quality_score != null ? Math.round(item.quality_score * 10) / 10 : '—';
+    const scoreCls = item.quality_score >= 8 ? 'color:var(--esb-success)' : item.quality_score >= 6 ? 'color:var(--esb-amber)' : item.quality_score != null ? 'color:var(--esb-error)' : '';
+    return '<tr onclick="caPanelOpen(\'' + item.id + '\')">' +
+      '<td><span style="font-size:0.78rem;font-weight:600;">' + escHtml(item.site_name || item.site_id) + '</span></td>' +
+      '<td style="max-width:300px;"><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(item.title) + '</span></td>' +
+      '<td style="white-space:nowrap;font-size:0.85rem;font-weight:600;' + scoreCls + '">' + score + '</td>' +
+      '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caRelTime(item.created_at) + '</td>' +
+      '<td onclick="event.stopPropagation()" style="white-space:nowrap;">' +
+      '<button class="ca-quick-btn ca-quick-approve" onclick="caQuickApprove(\'' + item.id + '\')" title="Approve">✓</button>' +
+      '<button class="ca-quick-btn ca-quick-deny" onclick="caQuickReject(\'' + item.id + '\')" title="Reject">✗</button>' +
+      '<button class="report-btn" onclick="caPanelOpen(\'' + item.id + '\')">Open</button>' +
+      '</td></tr>';
   }).join('');
 }
 
 async function caPanelOpen(id) {
+  const ov = document.getElementById('ca-panel-overlay'); if(ov) ov.classList.add('open');
+  const pn = document.getElementById('ca-panel'); if(pn) pn.classList.add('open');
+  const editorEl = document.getElementById('ca-editor');
+  if (editorEl) editorEl.value = 'Loading…';
   let item;
-  try { item = await apiCall('GET', '/api/content/items/' + id); }
-  catch(e) { alert('Could not load item: ' + e.message); return; }
+  try { item = await apiCall('GET', '/api/draft/' + id); }
+  catch(e) { alert('Could not load draft: ' + e.message); caPanelClose(); return; }
   caSelectedItem = item; caEditorDirty = false;
   const titleEl = document.getElementById('ca-panel-title');
   const metaEl = document.getElementById('ca-panel-meta');
-  const editorEl = document.getElementById('ca-editor');
+  const qualEl = document.getElementById('ca-quality-notes');
   if (titleEl) titleEl.textContent = item.title;
-  if (metaEl) metaEl.innerHTML = escHtml(item.site) + ' &nbsp;&middot;&nbsp; ' + escHtml(item.content_type || 'article') + ' &nbsp;&middot;&nbsp; ' + caStatusBadge(item.status);
-  if (editorEl) editorEl.value = item.body || '';
-  caUpdateSaveBtn(); caRenderPanelActions(); caTickCountdown();
-  if (caCountdownTimer) clearInterval(caCountdownTimer);
-  caCountdownTimer = setInterval(caTickCountdown, 30000);
-  const ov = document.getElementById('ca-panel-overlay'); if(ov) ov.classList.add('open');
-  const pn = document.getElementById('ca-panel'); if(pn) pn.classList.add('open');
+  if (metaEl) metaEl.innerHTML = escHtml(item.site_name || item.site_id) + ' &nbsp;&middot;&nbsp; ' + caStatusBadge(item.status);
+  if (qualEl) qualEl.textContent = item.quality_notes ? 'Quality: ' + item.quality_notes : '';
+  if (editorEl) editorEl.value = item.html_content || '';
+  caUpdateSaveBtn(); caRenderPanelActions();
 }
 
 function caPanelClose() {
   if (caEditorDirty && !confirm('Unsaved changes. Close anyway?')) return;
   caEditorDirty = false; caSelectedItem = null;
-  if (caCountdownTimer) { clearInterval(caCountdownTimer); caCountdownTimer = null; }
   const ov = document.getElementById('ca-panel-overlay'); if(ov) ov.classList.remove('open');
   const pn = document.getElementById('ca-panel'); if(pn) pn.classList.remove('open');
 }
@@ -611,115 +554,51 @@ function caUpdateSaveBtn() {
   if (btn) btn.disabled = !caEditorDirty;
 }
 
-function caTickCountdown() {
-  const el = document.getElementById('ca-panel-countdown');
-  if (!el || !caSelectedItem) return;
-  if (!caSelectedItem.expires_at || caSelectedItem.status !== 'pending') { el.innerHTML=''; return; }
-  const r = caCountdown(caSelectedItem.expires_at);
-  el.className = 'ca-countdown ' + r.cls;
-  el.innerHTML = ICONS.clock + ' ' + escHtml(r.text);
-}
-
 function caRenderPanelActions() {
   const row = document.getElementById('ca-action-row');
   if (!row || !caSelectedItem) return;
-  const s = caSelectedItem.status, id = caSelectedItem.id;
-  let html = '';
-  if (s === 'pending' || s === 'held') html += '<button class="btn btn-sm" style="background:#276749;color:#fff;" onclick="caApprove(' + id + ')">✓ Approve</button>';
-  if (s === 'pending') {
-    html += '<button class="btn btn-sm btn-ghost" onclick="caHold(' + id + ')">⏸ Hold</button>';
-    html += '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caOpenDenyModal(' + id + ')">✗ Deny</button>';
-  }
-  if (s === 'held') {
-    html += '<button class="btn btn-sm btn-ghost" onclick="caUnhold(' + id + ')">▶ Unhold</button>';
-    html += '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caOpenDenyModal(' + id + ')">✗ Deny</button>';
-  }
-  row.innerHTML = html;
+  const id = caSelectedItem.id;
+  row.innerHTML =
+    '<button class="btn btn-sm" style="background:#276749;color:#fff;" onclick="caApprove(\'' + id + '\')">✓ Approve &amp; Publish</button>' +
+    '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caReject(\'' + id + '\')">✗ Reject</button>';
 }
 
 async function caSaveBody() {
   if (!caSelectedItem) return;
-  const body = (document.getElementById('ca-editor') || {}).value || '';
+  const html = (document.getElementById('ca-editor') || {}).value || '';
   const btn = document.getElementById('ca-save-btn');
   if (btn) { btn.disabled=true; btn.textContent='Saving…'; }
   try {
-    await apiCall('PUT', '/api/content/items/' + caSelectedItem.id + '/body', { body: body });
+    await apiCall('PUT', '/api/draft/' + caSelectedItem.id, { title: caSelectedItem.title, html_content: html, meta: JSON.parse(caSelectedItem.meta_json || '{}') });
     caEditorDirty = false; caUpdateSaveBtn();
-    if (btn) btn.textContent = 'Save Edits';
+    if (btn) btn.textContent = 'Save';
   } catch(e) {
     alert('Save failed: ' + e.message);
-    if (btn) { btn.disabled=false; btn.textContent='Save Edits'; }
+    if (btn) { btn.disabled=false; btn.textContent='Save'; }
   }
 }
 
 async function caApprove(id) {
-  try { await apiCall('POST', '/api/content/items/' + id + '/approve'); caPanelClose(); await loadContentItems(); }
+  try { await apiCall('POST', '/api/draft/' + id + '/approve'); caPanelClose(); await loadDrafts(); }
   catch(e) { alert('Approve failed: ' + e.message); }
 }
 
 async function caQuickApprove(id) {
-  if (!confirm('Approve this item?')) return;
-  try { await apiCall('POST', '/api/content/items/' + id + '/approve'); await loadContentItems(); }
+  if (!confirm('Approve and publish this draft?')) return;
+  try { await apiCall('POST', '/api/draft/' + id + '/approve'); await loadDrafts(); }
   catch(e) { alert('Approve failed: ' + e.message); }
 }
 
-async function caHold(id) {
-  try {
-    await apiCall('POST', '/api/content/items/' + id + '/hold');
-    if (caSelectedItem && caSelectedItem.id === id) { caSelectedItem.status='held'; caRenderPanelActions(); caTickCountdown(); }
-    await loadContentItems(true);
-  } catch(e) { alert('Hold failed: ' + e.message); }
+async function caReject(id) {
+  if (!confirm('Reject this draft? It will be discarded.')) return;
+  try { await apiCall('POST', '/api/draft/' + id + '/reject'); caPanelClose(); await loadDrafts(); }
+  catch(e) { alert('Reject failed: ' + e.message); }
 }
 
-async function caUnhold(id) {
-  try {
-    await apiCall('POST', '/api/content/items/' + id + '/unhold');
-    if (caSelectedItem && caSelectedItem.id === id) { caSelectedItem.status='pending'; caRenderPanelActions(); caTickCountdown(); }
-    await loadContentItems(true);
-  } catch(e) { alert('Unhold failed: ' + e.message); }
-}
-
-function caOpenDenyModal(id) {
-  caDenyTarget = id;
-  const n = document.getElementById('ca-deny-notes'); if(n) n.value='';
-  const o = document.getElementById('ca-deny-overlay'); if(o) o.classList.add('open');
-}
-
-function caCloseDenyModal() {
-  caDenyTarget = null;
-  const o = document.getElementById('ca-deny-overlay'); if(o) o.classList.remove('open');
-}
-
-async function caConfirmDeny() {
-  if (!caDenyTarget) return;
-  const notes = (document.getElementById('ca-deny-notes') || {}).value || '';
-  try {
-    await apiCall('POST', '/api/content/items/' + caDenyTarget + '/deny', { notes: notes });
-    caCloseDenyModal();
-    if (caSelectedItem && caSelectedItem.id === caDenyTarget) caPanelClose();
-    await loadContentItems();
-  } catch(e) { alert('Deny failed: ' + e.message); }
-}
-
-async function caShowGuide() {
-  if (!caSelectedItem) return;
-  const modal = document.getElementById('ca-guide-modal');
-  const titleEl = document.getElementById('ca-guide-title');
-  const bodyEl = document.getElementById('ca-guide-body');
-  if (!modal) return;
-  if (titleEl) titleEl.textContent = 'Content Guide — ' + caSelectedItem.site;
-  if (bodyEl) bodyEl.innerHTML = '<div class="loading-state" style="justify-content:center;padding:40px;"><div class="spinner"></div> Loading…</div>';
-  modal.classList.add('open');
-  try {
-    const data = await apiCall('GET', '/api/content/guide/' + caSelectedItem.site);
-    if (bodyEl) bodyEl.innerHTML = '<pre>' + escHtml(data.content) + '</pre>';
-  } catch(e) {
-    if (bodyEl) bodyEl.innerHTML = '<div class="alert alert-error">' + escHtml(e.message) + '</div>';
-  }
-}
-
-function caCloseGuide() {
-  const m = document.getElementById('ca-guide-modal'); if(m) m.classList.remove('open');
+async function caQuickReject(id) {
+  if (!confirm('Reject this draft?')) return;
+  try { await apiCall('POST', '/api/draft/' + id + '/reject'); await loadDrafts(); }
+  catch(e) { alert('Reject failed: ' + e.message); }
 }
 
 // ── Main render ───────────────────────────────────────────────────────────────
