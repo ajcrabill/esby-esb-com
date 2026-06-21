@@ -362,11 +362,13 @@ function renderSignIn() {
 // ── Access denied ─────────────────────────────────────────────────────────────
 function renderAccessDenied() {
   document.getElementById('main-content').innerHTML =
-    '<div class="portal-card" style="max-width:480px;margin:0 auto;text-align:center;">' +
+    '<div class="portal-card" style="max-width:540px;margin:0 auto;text-align:center;">' +
     '<div style="font-size:3rem;margin-bottom:16px;">🔒</div>' +
     '<div style="font-size:1.2rem;font-weight:700;color:var(--esb-dark);margin-bottom:8px;">Access Denied</div>' +
-    '<p style="color:var(--esb-text-muted);margin-bottom:24px;">This page is restricted to admin accounts. ' +
-    'You are signed in as <strong>' + escHtml(currentUser.email) + '</strong> which does not have admin access.</p>' +
+    '<p style="color:var(--esb-text-muted);margin-bottom:12px;">This page is restricted to admin accounts. ' +
+    'You are signed in as <strong>' + escHtml(currentUser.email) + '</strong>.</p>' +
+    '<pre style="text-align:left;background:var(--esb-bg);border:1px solid var(--esb-border);border-radius:6px;padding:12px;font-size:0.8rem;margin-bottom:20px;overflow:auto;">' +
+    escHtml(JSON.stringify(currentUser, null, 2)) + '</pre>' +
     '<button class="btn btn-ghost" onclick="signOut()">Sign out and try another account</button>' +
     '</div>';
 }
