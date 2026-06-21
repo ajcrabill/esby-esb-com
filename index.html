@@ -829,7 +829,6 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
   if (tab === 'repository') refreshRepository();
-  if (tab === 'content') initContentApprovals();
 }
 
 // ── Repository ────────────────────────────────────────────────────────────────
@@ -985,7 +984,6 @@ async function renderPortal() {
       <button class="tab-btn ${activeTab==='repository'?'active':''}" data-tab="repository" onclick="switchTab('repository')">
         ${ICONS.book} Repository
       </button>
-      ${currentUser && currentUser.role === 'superadmin' ? '<button class="tab-btn ' + (activeTab==='content'?'active':'') + '" data-tab="content" onclick="switchTab(\'content\')">Content<span id="ca-tab-badge" class="ca-tab-badge" style="' + (caPendingCount > 0 ? '' : 'display:none') + '">' + (caPendingCount || '') + '</span></button>' : ''}
     </div>
 
     <!-- Submit tab -->
@@ -1109,7 +1107,6 @@ async function renderPortal() {
         </div>
       </div>
     </div>
-    ${currentUser && currentUser.role === 'superadmin' ? '<div class="tab-panel ' + (activeTab==='content'?'active':'') + '" id="tab-content"><div id="ca-root"></div></div>' : ''}
   `;
 
   updateSpanLabels();

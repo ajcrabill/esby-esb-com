@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(location.protocol!=='https:'&&location.hostname!=='localhost')location.replace('https:'+location.href.slice(5));</script>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Approvals — ESB Admin</title>
+
+<link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Raleway:300,400,500,600,700|Poppins:300,400,500,600,700" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/css/style.css" rel="stylesheet">
+<link href="https://www.effectiveschoolboards.com/assets/img/favicon.png" rel="icon">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --esb-dark: #2c3e50;
+    --esb-blue: #3a6ea8;
+    --esb-blue-light: #4d82c0;
+    --esb-blue-dark: #2a5285;
+    --esb-amber: #e8a000;
+    --esb-bg: #f5f6f8;
+    --esb-surface: #ffffff;
+    --esb-border: #dde2ea;
+    --esb-border-strong: #c5ccd8;
+    --esb-text: #1a2533;
+    --esb-text-secondary: #4a5568;
+    --esb-text-muted: #718096;
+    --esb-success: #276749;
+    --esb-success-bg: #e8f5ee;
+    --esb-error: #9b2c2c;
+    --esb-error-bg: #fff5f5;
+    --esb-warning: #7b4a00;
+    --esb-warning-bg: #fffaf0;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
+    --transition: 150ms ease;
+  }
+
+  .breadcrumb-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .user-strip { display:flex; align-items:center; gap:10px; font-size:0.875rem; color:var(--esb-text-secondary); }
+  .user-strip-email { font-weight:500; color:var(--esb-blue); }
+  .user-strip-divider { color:var(--esb-border-strong); }
+  .user-strip-signout { background:none; border:none; padding:0; cursor:pointer; color:var(--esb-text-muted); font-size:0.875rem; text-decoration:underline; }
+  .user-strip-signout:hover { color:var(--esb-error); }
+
+  .portal-card { background:var(--esb-surface); border:1px solid var(--esb-border); border-radius:var(--radius-lg); box-shadow:var(--shadow-md); padding:32px; margin-bottom:24px; }
+
+  .form-group { margin-bottom:16px; }
+  .form-label { display:block; font-size:0.8125rem; font-weight:600; color:var(--esb-text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em; }
+  .form-input { width:100%; padding:10px 14px; border:1px solid var(--esb-border-strong); border-radius:var(--radius-sm); font-size:0.9375rem; color:var(--esb-text); background:var(--esb-surface); transition:border-color var(--transition), box-shadow var(--transition); }
+  .form-input:focus { outline:none; border-color:var(--esb-blue); box-shadow:0 0 0 3px rgba(58,110,168,0.12); }
+
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:var(--radius-sm); font-size:0.9375rem; font-weight:600; cursor:pointer; border:none; transition:all var(--transition); }
+  .btn:disabled { opacity:0.55; cursor:not-allowed; }
+  .btn-primary { background:var(--esb-blue); color:#fff; }
+  .btn-primary:hover:not(:disabled) { background:var(--esb-blue-dark); }
+  .btn-block { width:100%; justify-content:center; }
+  .btn-sm { padding:6px 14px; font-size:0.8125rem; }
+  .btn-ghost { background:none; border:1px solid var(--esb-border-strong); color:var(--esb-text-secondary); }
+  .btn-ghost:hover:not(:disabled) { background:var(--esb-bg); }
+
+  .alert { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border-radius:var(--radius-sm); font-size:0.875rem; margin-bottom:12px; }
+  .alert svg { flex-shrink:0; margin-top:1px; }
+  .alert-info { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+  .alert-error { background:var(--esb-error-bg); color:var(--esb-error); border:1px solid #fed7d7; }
+  .mb-2 { margin-bottom:8px; }
+
+  .otp-step { display:none; flex-direction:column; gap:10px; }
+  .otp-step.active { display:flex; }
+  .otp-back { display:inline-flex; align-items:center; gap:6px; background:none; border:none; padding:0; cursor:pointer; color:var(--esb-text-muted); font-size:0.875rem; }
+  .otp-back:hover { color:var(--esb-blue); }
+
+  .signin-wrap { display:flex; justify-content:center; padding:16px 0; }
+  .signin-card { background:var(--esb-surface); border:1px solid var(--esb-border); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:40px; width:100%; max-width:440px; }
+  .signin-icon { width:56px; height:56px; border-radius:14px; background:var(--esb-blue); display:flex; align-items:center; justify-content:center; margin-bottom:20px; }
+  .signin-title { font-size:1.35rem; font-weight:700; color:var(--esb-dark); margin:0 0 6px; }
+  .signin-subtitle { font-size:0.875rem; color:var(--esb-text-muted); margin:0 0 28px; }
+
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-size:0.75rem; font-weight:600; }
+  .ca-badge-pending { background:#dbeafe; color:#1d4ed8; }
+  .ca-badge-live { background:#d1fae5; color:#065f46; }
+  .ca-badge-denied { background:#fee2e2; color:#991b1b; }
+  .ca-badge-held { background:#fef3c7; color:#92400e; }
+
+  .empty-state { text-align:center; padding:48px 24px; color:var(--esb-text-muted); }
+  .empty-state-icon { font-size:3rem; margin-bottom:16px; opacity:0.4; }
+  .empty-state-title { font-size:1.1rem; font-weight:600; color:var(--esb-text-secondary); margin-bottom:8px; }
+
+  .spinner { width:20px; height:20px; border-radius:50%; border:2px solid var(--esb-border); border-top-color:var(--esb-blue); animation:spin 0.7s linear infinite; display:inline-block; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading-state { display:flex; align-items:center; gap:10px; color:var(--esb-text-muted); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Content Approvals ── */
+  .ca-filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+  .ca-select { padding:7px 11px; border:1px solid var(--esb-border-strong); border-radius:var(--radius-sm); font-size:0.875rem; color:var(--esb-text); background:var(--esb-surface); height:36px; }
+  .ca-search { flex:1; min-width:180px; padding:7px 11px; border:1px solid var(--esb-border-strong); border-radius:var(--radius-sm); font-size:0.875rem; color:var(--esb-text); background:var(--esb-surface); height:36px; }
+  .ca-select:focus,.ca-search:focus { outline:none; border-color:var(--esb-blue); }
+  .ca-table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+  .ca-table th { background:#1F4E79; color:#fff; padding:9px 12px; text-align:left; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; cursor:pointer; user-select:none; white-space:nowrap; }
+  .ca-table th:hover { background:#163d64; }
+  .ca-table td { padding:9px 12px; border-bottom:1px solid var(--esb-border); vertical-align:middle; }
+  .ca-table tr:last-child td { border-bottom:none; }
+  .ca-table tbody tr { cursor:pointer; }
+  .ca-table tbody tr:hover td { background:var(--esb-bg); }
+  .ca-sort-arrow { margin-left:4px; opacity:0.7; }
+  .ca-quick-btn { background:none; border:1px solid; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem; font-weight:600; margin-right:4px; }
+  .ca-quick-approve { color:var(--esb-success); border-color:var(--esb-success); }
+  .ca-quick-approve:hover { background:var(--esb-success-bg); }
+  .ca-quick-deny { color:var(--esb-error); border-color:#feb2b2; }
+  .ca-quick-deny:hover { background:var(--esb-error-bg); }
+  .report-btn { background:none; border:none; cursor:pointer; padding:3px 6px; color:var(--esb-text-muted); font-size:0.75rem; border-radius:4px; border:1px solid var(--esb-border); white-space:nowrap; }
+  .report-btn:hover { color:var(--esb-blue); border-color:var(--esb-blue); }
+
+  .ca-panel-overlay { position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.4); opacity:0; pointer-events:none; transition:opacity 0.25s; }
+  .ca-panel-overlay.open { opacity:1; pointer-events:auto; }
+  .ca-panel { position:fixed; top:0; right:0; bottom:0; z-index:901; width:min(660px,92vw); background:var(--esb-surface); border-left:1px solid var(--esb-border); box-shadow:var(--shadow-lg); display:flex; flex-direction:column; transform:translateX(100%); transition:transform 0.25s ease; }
+  .ca-panel.open { transform:translateX(0); }
+  .ca-panel-head { display:flex; align-items:flex-start; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--esb-border); flex-shrink:0; gap:12px; }
+  .ca-panel-title { font-weight:700; color:var(--esb-dark); font-size:0.9375rem; line-height:1.3; }
+  .ca-panel-meta { font-size:0.78rem; color:var(--esb-text-muted); margin-top:4px; }
+  .ca-panel-close { background:none; border:none; cursor:pointer; color:var(--esb-text-muted); font-size:1.1rem; padding:4px 6px; border-radius:4px; line-height:1; flex-shrink:0; }
+  .ca-panel-close:hover { background:var(--esb-bg); color:var(--esb-text); }
+  .ca-editor-wrap { flex:1; overflow:hidden; display:flex; flex-direction:column; padding:14px 20px; gap:8px; min-height:0; }
+  .ca-editor-label { font-size:0.72rem; font-weight:600; color:var(--esb-text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .ca-editor { flex:1; width:100%; resize:none; font-family:'Courier New',Courier,monospace; font-size:0.8rem; line-height:1.5; padding:10px 12px; border:1px solid var(--esb-border-strong); border-radius:var(--radius-sm); color:var(--esb-text); background:#fafbfc; min-height:0; }
+  .ca-editor:focus { outline:none; border-color:var(--esb-blue); background:#fff; }
+  .ca-panel-footer { flex-shrink:0; border-top:1px solid var(--esb-border); padding:14px 20px; display:flex; flex-direction:column; gap:10px; }
+  .ca-save-row { display:flex; align-items:center; justify-content:space-between; }
+  .ca-action-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .ca-countdown { font-size:0.8rem; color:var(--esb-text-muted); display:inline-flex; align-items:center; gap:4px; }
+  .ca-countdown.urgent { color:var(--esb-error); font-weight:600; }
+  .ca-countdown.expired { color:var(--esb-error); font-weight:700; }
+
+  .ca-modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; padding:20px; }
+  .ca-modal-overlay.open { display:flex; }
+  .ca-modal { background:var(--esb-surface); border-radius:var(--radius-lg); width:100%; max-width:820px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow-lg); }
+  .ca-modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--esb-border); flex-shrink:0; }
+  .ca-modal-title { font-weight:700; font-size:0.9375rem; color:var(--esb-dark); }
+  .ca-modal-body { overflow-y:auto; padding:24px; }
+  .ca-modal-body pre { white-space:pre-wrap; font-size:0.8125rem; line-height:1.65; font-family:inherit; }
+
+  .ca-deny-overlay { position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; padding:20px; }
+  .ca-deny-overlay.open { display:flex; }
+  .ca-deny-modal { background:var(--esb-surface); border-radius:var(--radius-lg); width:100%; max-width:440px; padding:28px; box-shadow:var(--shadow-lg); }
+</style>
+</head>
+
+<body>
+
+<header id="header" class="fixed-top d-flex align-items-center">
+  <div class="container d-flex align-items-center">
+    <a href="/" class="logo me-auto"><img src="https://www.effectiveschoolboards.com/assets/img/logo.png" alt="Effective School Boards"></a>
+    <nav id="navbar" class="navbar order-last order-lg-0">
+      <ul>
+        <li><a class="nav-link scrollto" href="https://www.effectiveschoolboards.com/">Home</a></li>
+        <li><a class="nav-link scrollto" href="/">Portal</a></li>
+      </ul>
+      <i class="bi bi-list mobile-nav-toggle"></i>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page-content" aria-label="Content">
+  <div class="wrapper">
+    <section class="breadcrumbs">
+      <div class="container">
+        <ol>
+          <li><a href="https://www.effectiveschoolboards.com/">Home</a></li>
+          <li><a href="/">Portal</a></li>
+          <li>Content Approvals</li>
+        </ol>
+        <div class="breadcrumb-row">
+          <h1>Content Approvals</h1>
+          <div class="user-strip" id="user-strip"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="inner-page">
+      <div class="container">
+        <div id="main-content">
+          <div style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--esb-text-muted);gap:12px;">
+            <div class="spinner"></div><span>Loading…</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer id="footer">
+  <div class="container d-md-flex py-4">
+    <div class="me-md-auto text-center text-md-start">
+      <div class="copyright">&copy; Copyright <strong><span>Effective School Boards</span></strong>. All Rights Reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://www.effectiveschoolboards.com/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="https://www.effectiveschoolboards.com/assets/js/main.js"></script>
+
+<script>
+const API = 'https://esbcloud.taild49f53.ts.net:8444';
+const TOKEN_KEY = 'esby_token';
+
+const ICONS = {
+  mail: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg>',
+  arrow: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>',
+  alertCircle: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>',
+  book: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+  clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>',
+  lock: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+};
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function apiCall(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const opts = { method: method, headers: headers };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (!res.ok) {
+    let msg = 'Request failed (' + res.status + ')';
+    try { const d = await res.json(); msg = d.detail || d.message || msg; } catch(e) {}
+    throw new Error(msg);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+let currentUser = null;
+
+function getToken() { return localStorage.getItem(TOKEN_KEY); }
+function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+async function loadUser() {
+  if (!getToken()) return null;
+  try { currentUser = await apiCall('GET', '/auth/me'); return currentUser; }
+  catch(e) { clearToken(); return null; }
+}
+
+function signOut() {
+  clearToken(); currentUser = null;
+  renderUserStrip(); render();
+}
+
+function renderUserStrip() {
+  const el = document.getElementById('user-strip');
+  if (!el) return;
+  el.innerHTML = currentUser
+    ? '<span class="user-strip-email">' + escHtml(currentUser.email) + '</span><span class="user-strip-divider">|</span><button class="user-strip-signout" onclick="signOut()">Sign out</button>'
+    : '';
+}
+
+// ── OTP ───────────────────────────────────────────────────────────────────────
+function otpStep(step) {
+  ['email','code','loading'].forEach(function(s) {
+    const el = document.getElementById('otp-step-' + s);
+    if (el) el.classList.toggle('active', s === step);
+  });
+}
+
+function showOtpError(step, msg) {
+  const el = document.getElementById(step === 'email' ? 'otp-err-email' : 'otp-err-code');
+  if (el) el.innerHTML = '<div class="alert alert-error mb-2">' + ICONS.alertCircle + ' ' + escHtml(msg) + '</div>';
+}
+
+function resetOtp() {
+  otpStep('email');
+  ['otp-err-email','otp-err-code'].forEach(function(id) { const e=document.getElementById(id); if(e) e.innerHTML=''; });
+  const c = document.getElementById('otp-input-code'); if(c) c.value='';
+}
+
+async function requestOtp() {
+  const emailEl = document.getElementById('otp-input-email');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const errEl = document.getElementById('otp-err-email'); if(errEl) errEl.innerHTML='';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showOtpError('email','Please enter a valid email address.'); return; }
+  const btn = document.getElementById('otp-send-btn');
+  if(btn) { btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:16px;height:16px;"></div> Sending…'; }
+  try {
+    await apiCall('POST', '/auth/request', { email: email });
+    const sentMsg = document.getElementById('otp-sent-msg');
+    if(sentMsg) sentMsg.textContent = 'A 6-digit code has been sent to ' + email + '.';
+    otpStep('code');
+  } catch(e) {
+    if(btn) { btn.disabled=false; btn.innerHTML=ICONS.mail+' Send Access Code'; }
+    showOtpError('email', e.message||'Failed to send code.');
+  }
+}
+
+async function verifyOtp() {
+  const emailEl = document.getElementById('otp-input-email');
+  const codeEl = document.getElementById('otp-input-code');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const code = codeEl ? codeEl.value.trim() : '';
+  const errEl = document.getElementById('otp-err-code'); if(errEl) errEl.innerHTML='';
+  if (!code || code.length !== 6) { showOtpError('code','Please enter the 6-digit code from your email.'); return; }
+  otpStep('loading');
+  try {
+    const result = await apiCall('POST', '/auth/verify', { email: email, code: code });
+    setToken(result.token);
+    currentUser = await apiCall('GET', '/auth/me');
+    renderUserStrip(); render();
+  } catch(e) {
+    otpStep('code');
+    showOtpError('code', e.message||'Invalid or expired code.');
+  }
+}
+
+// ── Sign-in view ──────────────────────────────────────────────────────────────
+function renderSignIn() {
+  document.getElementById('main-content').innerHTML =
+    '<div class="signin-wrap"><div class="signin-card">' +
+    '<div class="signin-icon">' + ICONS.lock + '</div>' +
+    '<div class="signin-title">Admin Sign In</div>' +
+    '<div class="signin-subtitle">Sign in to access the Content Approvals dashboard</div>' +
+    '<div id="otp-step-email" class="otp-step active">' +
+    '<div id="otp-err-email"></div>' +
+    '<div class="form-group"><label class="form-label" for="otp-input-email">Email address</label>' +
+    '<input class="form-input" type="email" id="otp-input-email" placeholder="you@example.com" autocomplete="email"/></div>' +
+    '<button class="btn btn-primary btn-block" id="otp-send-btn" onclick="requestOtp()">' + ICONS.mail + ' Send Access Code</button>' +
+    '</div>' +
+    '<div id="otp-step-code" class="otp-step">' +
+    '<button class="otp-back" onclick="resetOtp()">' + ICONS.arrow + ' Back</button>' +
+    '<div id="otp-err-code"></div>' +
+    '<div class="alert alert-info">' + ICONS.mail + '<span id="otp-sent-msg">A 6-digit code has been sent to your email.</span></div>' +
+    '<div class="form-group"><label class="form-label" for="otp-input-code">Access code</label>' +
+    '<input class="form-input" type="text" id="otp-input-code" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="letter-spacing:0.2em;font-size:20px;text-align:center;"/></div>' +
+    '<button class="btn btn-primary btn-block" onclick="verifyOtp()">' + ICONS.check + ' Verify &amp; Sign In</button>' +
+    '</div>' +
+    '<div id="otp-step-loading" class="otp-step"><div class="loading-state"><div class="spinner"></div> Signing in…</div></div>' +
+    '</div></div>';
+
+  const emailEl = document.getElementById('otp-input-email');
+  const codeEl = document.getElementById('otp-input-code');
+  if(emailEl) emailEl.addEventListener('keydown', function(e) { if(e.key==='Enter') requestOtp(); });
+  if(codeEl) {
+    codeEl.addEventListener('keydown', function(e) { if(e.key==='Enter') verifyOtp(); });
+    codeEl.addEventListener('input', function(e) { e.target.value = e.target.value.replace(/\D/g,'').slice(0,6); });
+  }
+}
+
+// ── Access denied ─────────────────────────────────────────────────────────────
+function renderAccessDenied() {
+  document.getElementById('main-content').innerHTML =
+    '<div class="portal-card" style="max-width:480px;margin:0 auto;text-align:center;">' +
+    '<div style="font-size:3rem;margin-bottom:16px;">🔒</div>' +
+    '<div style="font-size:1.2rem;font-weight:700;color:var(--esb-dark);margin-bottom:8px;">Access Denied</div>' +
+    '<p style="color:var(--esb-text-muted);margin-bottom:24px;">This page is restricted to admin accounts. ' +
+    'You are signed in as <strong>' + escHtml(currentUser.email) + '</strong> which does not have admin access.</p>' +
+    '<button class="btn btn-ghost" onclick="signOut()">Sign out and try another account</button>' +
+    '</div>';
+}
+
+// ── Content Approvals state ───────────────────────────────────────────────────
+let caItems = [];
+let caSort = { field: 'staged_at', dir: 'desc' };
+let caFilter = { site: '', status: 'pending', search: '' };
+let caSelectedItem = null;
+let caEditorDirty = false;
+let caPendingCount = 0;
+let caAutoRefresh = null;
+let caDenyTarget = null;
+let caCountdownTimer = null;
+
+function caRelTime(iso) {
+  if (!iso) return '—';
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
+function caCountdown(iso) {
+  if (!iso) return { text: '—', cls: '' };
+  const ms = new Date(iso) - Date.now();
+  if (ms <= 0) return { text: 'Expired', cls: 'expired' };
+  const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+  return { text: h > 0 ? h+'h '+m+'m left' : m+'m left', cls: ms < 3600000 ? 'urgent' : '' };
+}
+
+function caStatusBadge(status) {
+  const map = { pending:['ca-badge-pending','Pending'], live:['ca-badge-live','Live'], denied:['ca-badge-denied','Denied'], held:['ca-badge-held','Held'] };
+  const [cls, label] = map[status] || ['ca-badge-pending', status];
+  return '<span class="badge ' + cls + '">' + label + '</span>';
+}
+
+function caSortBy(field) {
+  if (caSort.field === field) caSort.dir = caSort.dir === 'asc' ? 'desc' : 'asc';
+  else { caSort.field = field; caSort.dir = 'desc'; }
+  loadContentItems();
+}
+
+// ── Content Approvals UI ──────────────────────────────────────────────────────
+function renderAdminUI() {
+  document.getElementById('main-content').innerHTML =
+    '<div class="portal-card">' +
+    '<div class="ca-filter-bar">' +
+    '<select class="ca-select" id="ca-site-filter" onchange="caFilter.site=this.value;loadContentItems()">' +
+    '<option value="">All Sites</option>' +
+    '<option value="schoolboardanswers">schoolboardanswers.com</option>' +
+    '<option value="effectivegoverningboards">effectivegoverningboards.com</option>' +
+    '<option value="schoolboardreport">schoolboardreport.com</option>' +
+    '<option value="schoolboardresearch">schoolboardresearch.com</option>' +
+    '<option value="schoolboardreview">schoolboardreview.com</option>' +
+    '<option value="schoolboardweekly">schoolboardweekly.com</option>' +
+    '<option value="creatingoutcomes">creatingoutcomes.com</option>' +
+    '<option value="governthefuture">governthefuture.com</option>' +
+    '<option value="effectiveboards">effective-boards.com</option>' +
+    '</select>' +
+    '<select class="ca-select" id="ca-status-filter" onchange="caFilter.status=this.value;loadContentItems()">' +
+    '<option value="">All Status</option>' +
+    '<option value="pending">Pending</option>' +
+    '<option value="live">Live</option>' +
+    '<option value="held">Held</option>' +
+    '<option value="denied">Denied</option>' +
+    '</select>' +
+    '<input class="ca-search" type="search" id="ca-search" placeholder="Search title…" oninput="caFilter.search=this.value;loadContentItems()">' +
+    '<span id="ca-count-label" style="font-size:0.8rem;color:var(--esb-text-muted);white-space:nowrap;"></span>' +
+    '<button class="btn btn-ghost btn-sm" onclick="loadContentItems()" style="white-space:nowrap;">↻ Refresh</button>' +
+    '</div>' +
+    '<div style="overflow-x:auto;">' +
+    '<table class="ca-table"><thead><tr>' +
+    '<th onclick="caSortBy(\'site\')">Site <span id="ca-sort-site" class="ca-sort-arrow"></span></th>' +
+    '<th onclick="caSortBy(\'title\')">Title <span id="ca-sort-title" class="ca-sort-arrow"></span></th>' +
+    '<th>Type</th>' +
+    '<th onclick="caSortBy(\'status\')">Status <span id="ca-sort-status" class="ca-sort-arrow"></span></th>' +
+    '<th onclick="caSortBy(\'staged_at\')">Staged <span id="ca-sort-staged_at" class="ca-sort-arrow"></span></th>' +
+    '<th>Expires</th>' +
+    '<th>Actions</th>' +
+    '</tr></thead>' +
+    '<tbody id="ca-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;">' +
+    '<div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div>' +
+    '</td></tr></tbody></table></div></div>' +
+
+    '<div class="ca-panel-overlay" id="ca-panel-overlay" onclick="caPanelClose()"></div>' +
+    '<div class="ca-panel" id="ca-panel">' +
+    '<div class="ca-panel-head">' +
+    '<div style="min-width:0;flex:1;"><div class="ca-panel-title" id="ca-panel-title">—</div>' +
+    '<div class="ca-panel-meta" id="ca-panel-meta"></div></div>' +
+    '<button class="ca-panel-close" onclick="caPanelClose()" title="Close">✕</button>' +
+    '</div>' +
+    '<div class="ca-editor-wrap">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+    '<span class="ca-editor-label">Content Body</span>' +
+    '<button class="btn btn-ghost btn-sm" onclick="caShowGuide()" style="font-size:0.75rem;padding:4px 10px;">' + ICONS.book + ' Guide</button>' +
+    '</div>' +
+    '<textarea class="ca-editor" id="ca-editor" placeholder="Loading…" oninput="caEditorDirty=true;caUpdateSaveBtn()"></textarea>' +
+    '</div>' +
+    '<div class="ca-panel-footer">' +
+    '<div class="ca-save-row">' +
+    '<span class="ca-countdown" id="ca-panel-countdown"></span>' +
+    '<button class="btn btn-sm btn-ghost" id="ca-save-btn" onclick="caSaveBody()" disabled>Save Edits</button>' +
+    '</div>' +
+    '<div class="ca-action-row" id="ca-action-row"></div>' +
+    '</div></div>' +
+
+    '<div class="ca-modal-overlay" id="ca-guide-modal">' +
+    '<div class="ca-modal">' +
+    '<div class="ca-modal-head"><span class="ca-modal-title" id="ca-guide-title">Content Guide</span>' +
+    '<button class="ca-panel-close" onclick="caCloseGuide()">✕</button></div>' +
+    '<div class="ca-modal-body" id="ca-guide-body">' +
+    '<div class="loading-state" style="justify-content:center;padding:40px;"><div class="spinner"></div> Loading…</div>' +
+    '</div></div></div>' +
+
+    '<div class="ca-deny-overlay" id="ca-deny-overlay">' +
+    '<div class="ca-deny-modal">' +
+    '<div style="font-weight:700;font-size:1rem;color:var(--esb-dark);margin-bottom:8px;">Deny Content</div>' +
+    '<p style="font-size:0.875rem;color:var(--esb-text-muted);margin:0 0 16px;">Optionally add a note explaining the denial.</p>' +
+    '<textarea id="ca-deny-notes" class="form-input" style="height:90px;resize:vertical;font-size:0.875rem;" placeholder="Optional notes…"></textarea>' +
+    '<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">' +
+    '<button class="btn btn-ghost btn-sm" onclick="caCloseDenyModal()">Cancel</button>' +
+    '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caConfirmDeny()">Deny</button>' +
+    '</div></div></div>';
+
+  const statusEl = document.getElementById('ca-status-filter');
+  if (statusEl) statusEl.value = caFilter.status || 'pending';
+
+  const editorEl = document.getElementById('ca-editor');
+  if (editorEl) {
+    editorEl.addEventListener('keydown', function(e) {
+      if (e.key !== 'Tab') return;
+      e.preventDefault();
+      const s = this.selectionStart, end = this.selectionEnd;
+      this.value = this.value.substring(0, s) + '  ' + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = s + 2;
+      caEditorDirty = true; caUpdateSaveBtn();
+    });
+  }
+
+  loadContentItems();
+  if (caAutoRefresh) clearInterval(caAutoRefresh);
+  caAutoRefresh = setInterval(function() { loadContentItems(true); }, 120000);
+}
+
+async function loadContentItems(silent) {
+  const tbody = document.getElementById('ca-tbody');
+  if (!tbody) return;
+  if (!silent) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;"><div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div></td></tr>';
+  }
+  try {
+    const params = new URLSearchParams();
+    if (caFilter.site) params.set('site', caFilter.site);
+    if (caFilter.status) params.set('status', caFilter.status);
+    if (caFilter.search) params.set('search', caFilter.search);
+    params.set('sort_by', caSort.field);
+    params.set('sort_dir', caSort.dir);
+    const data = await apiCall('GET', '/api/content/items?' + params);
+    caItems = data.items || [];
+    caPendingCount = data.pending_count || 0;
+    renderCaTable();
+    document.title = (caPendingCount > 0 ? '(' + caPendingCount + ') ' : '') + 'Content Approvals — ESB Admin';
+  } catch(e) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--esb-error);">Failed to load: ' + escHtml(e.message) + '</td></tr>';
+  }
+}
+
+function renderCaTable() {
+  const tbody = document.getElementById('ca-tbody');
+  if (!tbody) return;
+  ['site','title','status','staged_at'].forEach(function(f) {
+    const el = document.getElementById('ca-sort-' + f);
+    if (el) el.textContent = caSort.field === f ? (caSort.dir === 'asc' ? '▲' : '▼') : '';
+  });
+  const countEl = document.getElementById('ca-count-label');
+  if (countEl) countEl.textContent = caItems.length + ' item' + (caItems.length !== 1 ? 's' : '') + (caPendingCount > 0 ? ' · ' + caPendingCount + ' pending' : '');
+  if (!caItems.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No items</div><p>Content will appear here when agents submit drafts.</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = caItems.map(function(item) {
+    const cd = item.expires_at ? caCountdown(item.expires_at) : { text: '—', cls: '' };
+    const qa = item.status === 'pending'
+      ? '<button class="ca-quick-btn ca-quick-approve" onclick="event.stopPropagation();caQuickApprove(' + item.id + ')" title="Approve">✓</button>' +
+        '<button class="ca-quick-btn ca-quick-deny" onclick="event.stopPropagation();caOpenDenyModal(' + item.id + ')" title="Deny">✗</button>'
+      : '';
+    return '<tr onclick="caPanelOpen(' + item.id + ')">' +
+      '<td><span style="font-size:0.78rem;font-weight:600;">' + escHtml(item.site) + '</span></td>' +
+      '<td style="max-width:280px;"><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(item.title) + '</span></td>' +
+      '<td><span style="font-size:0.72rem;color:var(--esb-text-muted);">' + escHtml(item.content_type || '—') + '</span></td>' +
+      '<td>' + caStatusBadge(item.status) + '</td>' +
+      '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caRelTime(item.staged_at) + '</td>' +
+      '<td style="white-space:nowrap;"><span class="ca-countdown ' + cd.cls + '">' + cd.text + '</span></td>' +
+      '<td onclick="event.stopPropagation()" style="white-space:nowrap;">' + qa + '<button class="report-btn" onclick="caPanelOpen(' + item.id + ')">Open</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+async function caPanelOpen(id) {
+  let item;
+  try { item = await apiCall('GET', '/api/content/items/' + id); }
+  catch(e) { alert('Could not load item: ' + e.message); return; }
+  caSelectedItem = item; caEditorDirty = false;
+  const titleEl = document.getElementById('ca-panel-title');
+  const metaEl = document.getElementById('ca-panel-meta');
+  const editorEl = document.getElementById('ca-editor');
+  if (titleEl) titleEl.textContent = item.title;
+  if (metaEl) metaEl.innerHTML = escHtml(item.site) + ' &nbsp;&middot;&nbsp; ' + escHtml(item.content_type || 'article') + ' &nbsp;&middot;&nbsp; ' + caStatusBadge(item.status);
+  if (editorEl) editorEl.value = item.body || '';
+  caUpdateSaveBtn(); caRenderPanelActions(); caTickCountdown();
+  if (caCountdownTimer) clearInterval(caCountdownTimer);
+  caCountdownTimer = setInterval(caTickCountdown, 30000);
+  const ov = document.getElementById('ca-panel-overlay'); if(ov) ov.classList.add('open');
+  const pn = document.getElementById('ca-panel'); if(pn) pn.classList.add('open');
+}
+
+function caPanelClose() {
+  if (caEditorDirty && !confirm('Unsaved changes. Close anyway?')) return;
+  caEditorDirty = false; caSelectedItem = null;
+  if (caCountdownTimer) { clearInterval(caCountdownTimer); caCountdownTimer = null; }
+  const ov = document.getElementById('ca-panel-overlay'); if(ov) ov.classList.remove('open');
+  const pn = document.getElementById('ca-panel'); if(pn) pn.classList.remove('open');
+}
+
+function caUpdateSaveBtn() {
+  const btn = document.getElementById('ca-save-btn');
+  if (btn) btn.disabled = !caEditorDirty;
+}
+
+function caTickCountdown() {
+  const el = document.getElementById('ca-panel-countdown');
+  if (!el || !caSelectedItem) return;
+  if (!caSelectedItem.expires_at || caSelectedItem.status !== 'pending') { el.innerHTML=''; return; }
+  const r = caCountdown(caSelectedItem.expires_at);
+  el.className = 'ca-countdown ' + r.cls;
+  el.innerHTML = ICONS.clock + ' ' + escHtml(r.text);
+}
+
+function caRenderPanelActions() {
+  const row = document.getElementById('ca-action-row');
+  if (!row || !caSelectedItem) return;
+  const s = caSelectedItem.status, id = caSelectedItem.id;
+  let html = '';
+  if (s === 'pending' || s === 'held') html += '<button class="btn btn-sm" style="background:#276749;color:#fff;" onclick="caApprove(' + id + ')">✓ Approve</button>';
+  if (s === 'pending') {
+    html += '<button class="btn btn-sm btn-ghost" onclick="caHold(' + id + ')">⏸ Hold</button>';
+    html += '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caOpenDenyModal(' + id + ')">✗ Deny</button>';
+  }
+  if (s === 'held') {
+    html += '<button class="btn btn-sm btn-ghost" onclick="caUnhold(' + id + ')">▶ Unhold</button>';
+    html += '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caOpenDenyModal(' + id + ')">✗ Deny</button>';
+  }
+  row.innerHTML = html;
+}
+
+async function caSaveBody() {
+  if (!caSelectedItem) return;
+  const body = (document.getElementById('ca-editor') || {}).value || '';
+  const btn = document.getElementById('ca-save-btn');
+  if (btn) { btn.disabled=true; btn.textContent='Saving…'; }
+  try {
+    await apiCall('PUT', '/api/content/items/' + caSelectedItem.id + '/body', { body: body });
+    caEditorDirty = false; caUpdateSaveBtn();
+    if (btn) btn.textContent = 'Save Edits';
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    if (btn) { btn.disabled=false; btn.textContent='Save Edits'; }
+  }
+}
+
+async function caApprove(id) {
+  try { await apiCall('POST', '/api/content/items/' + id + '/approve'); caPanelClose(); await loadContentItems(); }
+  catch(e) { alert('Approve failed: ' + e.message); }
+}
+
+async function caQuickApprove(id) {
+  if (!confirm('Approve this item?')) return;
+  try { await apiCall('POST', '/api/content/items/' + id + '/approve'); await loadContentItems(); }
+  catch(e) { alert('Approve failed: ' + e.message); }
+}
+
+async function caHold(id) {
+  try {
+    await apiCall('POST', '/api/content/items/' + id + '/hold');
+    if (caSelectedItem && caSelectedItem.id === id) { caSelectedItem.status='held'; caRenderPanelActions(); caTickCountdown(); }
+    await loadContentItems(true);
+  } catch(e) { alert('Hold failed: ' + e.message); }
+}
+
+async function caUnhold(id) {
+  try {
+    await apiCall('POST', '/api/content/items/' + id + '/unhold');
+    if (caSelectedItem && caSelectedItem.id === id) { caSelectedItem.status='pending'; caRenderPanelActions(); caTickCountdown(); }
+    await loadContentItems(true);
+  } catch(e) { alert('Unhold failed: ' + e.message); }
+}
+
+function caOpenDenyModal(id) {
+  caDenyTarget = id;
+  const n = document.getElementById('ca-deny-notes'); if(n) n.value='';
+  const o = document.getElementById('ca-deny-overlay'); if(o) o.classList.add('open');
+}
+
+function caCloseDenyModal() {
+  caDenyTarget = null;
+  const o = document.getElementById('ca-deny-overlay'); if(o) o.classList.remove('open');
+}
+
+async function caConfirmDeny() {
+  if (!caDenyTarget) return;
+  const notes = (document.getElementById('ca-deny-notes') || {}).value || '';
+  try {
+    await apiCall('POST', '/api/content/items/' + caDenyTarget + '/deny', { notes: notes });
+    caCloseDenyModal();
+    if (caSelectedItem && caSelectedItem.id === caDenyTarget) caPanelClose();
+    await loadContentItems();
+  } catch(e) { alert('Deny failed: ' + e.message); }
+}
+
+async function caShowGuide() {
+  if (!caSelectedItem) return;
+  const modal = document.getElementById('ca-guide-modal');
+  const titleEl = document.getElementById('ca-guide-title');
+  const bodyEl = document.getElementById('ca-guide-body');
+  if (!modal) return;
+  if (titleEl) titleEl.textContent = 'Content Guide — ' + caSelectedItem.site;
+  if (bodyEl) bodyEl.innerHTML = '<div class="loading-state" style="justify-content:center;padding:40px;"><div class="spinner"></div> Loading…</div>';
+  modal.classList.add('open');
+  try {
+    const data = await apiCall('GET', '/api/content/guide/' + caSelectedItem.site);
+    if (bodyEl) bodyEl.innerHTML = '<pre>' + escHtml(data.content) + '</pre>';
+  } catch(e) {
+    if (bodyEl) bodyEl.innerHTML = '<div class="alert alert-error">' + escHtml(e.message) + '</div>';
+  }
+}
+
+function caCloseGuide() {
+  const m = document.getElementById('ca-guide-modal'); if(m) m.classList.remove('open');
+}
+
+// ── Main render ───────────────────────────────────────────────────────────────
+async function render() {
+  if (!currentUser) { renderSignIn(); return; }
+  if (currentUser.role !== 'superadmin') { renderAccessDenied(); return; }
+  renderAdminUI();
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async function() {
+  await loadUser();
+  renderUserStrip();
+  await render();
+})();
+</script>
+</body>
+</html>
