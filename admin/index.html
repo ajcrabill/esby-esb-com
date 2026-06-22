@@ -158,6 +158,23 @@
   .ca-deny-overlay { position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; padding:20px; }
   .ca-deny-overlay.open { display:flex; }
   .ca-deny-modal { background:var(--esb-surface); border-radius:var(--radius-lg); width:100%; max-width:440px; padding:28px; box-shadow:var(--shadow-lg); }
+
+  .reviewed-btn { background:none; border:1px solid var(--esb-border-strong); color:var(--esb-text-muted); padding:3px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem; font-weight:600; white-space:nowrap; }
+  .reviewed-btn:hover { background:var(--esb-success-bg); border-color:var(--esb-success); color:var(--esb-success); }
+  .reviewed-btn.is-reviewed { background:var(--esb-success-bg); border-color:var(--esb-success); color:var(--esb-success); }
+  .guide-overlay { position:fixed; inset:0; z-index:1200; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; padding:20px; }
+  .guide-overlay.open { display:flex; }
+  .guide-modal { background:var(--esb-surface); border-radius:var(--radius-lg); width:100%; max-width:860px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow-lg); }
+  .guide-modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--esb-border); flex-shrink:0; gap:12px; }
+  .guide-modal-body { overflow-y:auto; padding:24px; flex:1; }
+  .guide-modal-body h1,.guide-modal-body h2,.guide-modal-body h3 { color:var(--esb-dark); }
+  .guide-modal-body h2 { border-bottom:1px solid var(--esb-border); padding-bottom:6px; margin-top:1.5em; }
+  .guide-modal-body pre { background:var(--esb-bg); padding:12px; border-radius:6px; font-size:0.8rem; overflow-x:auto; }
+  .guide-modal-body code { background:var(--esb-bg); padding:1px 5px; border-radius:3px; font-size:0.85em; }
+  .guide-modal-body ul,.guide-modal-body ol { padding-left:1.5em; }
+  .guide-modal-body table { border-collapse:collapse; width:100%; }
+  .guide-modal-body th,.guide-modal-body td { border:1px solid var(--esb-border-strong); padding:6px 10px; }
+  .guide-modal-body th { background:var(--esb-bg); }
 </style>
 </head>
 
@@ -212,6 +229,7 @@
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script src="https://www.effectiveschoolboards.com/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -436,6 +454,7 @@ function renderAdminUI() {
     '<input class="ca-search" type="search" id="ca-search" placeholder="Search title…" oninput="caFilter.search=this.value;renderCaTable()">' +
     '<span id="ca-count-label" style="font-size:0.8rem;color:var(--esb-text-muted);white-space:nowrap;"></span>' +
     '<button class="btn btn-ghost btn-sm" onclick="loadDrafts()" style="white-space:nowrap;">↻ Refresh</button>' +
+    '<button class="btn btn-sm" onclick="showGuide()" style="white-space:nowrap;background:#6366f1;color:#fff;border:none;padding:7px 14px;">📋 Content Guides</button>' +
     '</div>' +
     '<div style="overflow-x:auto;">' +
     '<table class="ca-table"><thead><tr>' +
@@ -443,9 +462,11 @@ function renderAdminUI() {
     '<th>Title</th>' +
     '<th>Score</th>' +
     '<th>Submitted</th>' +
+    '<th>Auto-Publishes</th>' +
+    '<th>Reviewed</th>' +
     '<th>Actions</th>' +
     '</tr></thead>' +
-    '<tbody id="ca-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;">' +
+    '<tbody id="ca-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;">' +
     '<div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div>' +
     '</td></tr></tbody></table></div></div>' +
 
@@ -493,7 +514,7 @@ async function loadDrafts(silent) {
   const tbody = document.getElementById('ca-tbody');
   if (!tbody) return;
   if (!silent) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;"><div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;"><div class="loading-state" style="justify-content:center"><div class="spinner"></div> Loading…</div></td></tr>';
   }
   try {
     const data = await apiCall('GET', '/admin/api/drafts?status=' + encodeURIComponent(caFilter.status));
@@ -502,7 +523,7 @@ async function loadDrafts(silent) {
     const pending = caItems.filter(function(i) { return i.status === 'pending'; }).length;
     document.title = (pending > 0 ? '(' + pending + ') ' : '') + 'Content Approvals — ESB Admin';
   } catch(e) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--esb-error);">Failed to load: ' + escHtml(e.message) + '</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--esb-error);">Failed to load: ' + escHtml(e.message) + '</td></tr>';
   }
 }
 
@@ -518,7 +539,7 @@ function renderCaTable() {
   const countEl = document.getElementById('ca-count-label');
   if (countEl) countEl.textContent = items.length + ' pending';
   if (!items.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No pending drafts</div><p>Content will appear here when agents submit drafts.</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No pending drafts</div><p>Content will appear here when agents submit drafts.</p></div></td></tr>';
     return;
   }
   tbody.innerHTML = items.map(function(item) {
@@ -529,6 +550,8 @@ function renderCaTable() {
       '<td style="max-width:300px;"><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(item.title) + '</span></td>' +
       '<td style="white-space:nowrap;font-size:0.85rem;font-weight:600;' + scoreCls + '">' + score + '</td>' +
       '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caRelTime(item.created_at) + '</td>' +
+      '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caFmtDate(item.scheduled_for) + '</td>' +
+      '<td onclick="event.stopPropagation()" style="white-space:nowrap;"><button class=\"reviewed-btn' + (item.human_reviewed ? ' is-reviewed' : '') + '\" onclick=\"caToggleReviewed(\\'' + item.id + '\\', ' + (item.human_reviewed ? 1 : 0) + ',this)\">' + (item.human_reviewed ? '✓ Reviewed' : 'Mark Reviewed') + '</button></td>' +
       '<td onclick="event.stopPropagation()" style="white-space:nowrap;">' +
       (item.status === 'pending' ?
         '<button class="ca-quick-btn ca-quick-approve" onclick="caQuickApprove(\'' + item.id + '\')" title="Approve">✓</button>' +
@@ -638,6 +661,93 @@ async function caQuickReject(id) {
   if (!confirm('Reject this draft?')) return;
   try { await apiCall('POST', '/admin/api/draft/' + id + '/reject'); await loadDrafts(); }
   catch(e) { alert('Reject failed: ' + e.message); }
+}
+
+
+// ── Format epoch as readable date ─────────────────────────────────────────────
+function caFmtDate(epoch) {
+  if (!epoch) return '—';
+  var d = new Date(epoch * 1000);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+// ── Reviewed toggle ───────────────────────────────────────────────────────────
+async function caToggleReviewed(id, current, btn) {
+  var next = current ? 0 : 1;
+  btn.disabled = true;
+  try {
+    await apiCall('POST', '/admin/api/draft/' + id + '/mark-reviewed', { reviewed: next });
+    var item = caItems.find(function(i) { return i.id == id; });
+    if (item) item.human_reviewed = next;
+    btn.classList.toggle('is-reviewed', !!next);
+    btn.textContent = next ? '✓ Reviewed' : 'Mark Reviewed';
+    btn.onclick = function() { caToggleReviewed(id, next, btn); };
+  } catch(e) { alert('Failed: ' + e.message); }
+  btn.disabled = false;
+}
+
+// ── Content guide modal ───────────────────────────────────────────────────────
+var GUIDE_SITES = [
+  { id: 'schoolboardanswers',       label: 'School Board Answers' },
+  { id: 'effectivegoverningboards', label: 'Effective Governing Boards' },
+  { id: 'schoolboardreport',        label: 'School Board Report' },
+  { id: 'schoolboardresearch',      label: 'School Board Research' },
+  { id: 'schoolboardreview',        label: 'School Board Review' },
+  { id: 'schoolboardweekly',        label: 'School Board Weekly' },
+  { id: 'creatingoutcomes',         label: 'Creating Outcomes' },
+  { id: 'governthefuture',          label: 'Govern the Future' },
+  { id: 'effectiveboards',          label: 'Effective Boards' },
+  { id: 'tesbm',                    label: 'TESBM Newsletter' },
+];
+
+function showGuide(siteId) {
+  var overlay = document.getElementById('guide-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'guide-overlay';
+    overlay.className = 'guide-overlay';
+    var opts = GUIDE_SITES.map(function(s) {
+      return '<option value="' + s.id + '">' + escHtml(s.label) + '</option>';
+    }).join('');
+    overlay.innerHTML =
+      '<div class="guide-modal">' +
+        '<div class="guide-modal-head" style="gap:12px;">' +
+          '<select id="guide-site-select" class="ca-select" onchange="loadGuide(this.value)">' +
+            '<option value="">— Select a site —</option>' + opts +
+          '</select>' +
+          '<button class="ca-panel-close" onclick="closeGuide()" title="Close">✕</button>' +
+        '</div>' +
+        '<div class="guide-modal-body" id="guide-modal-body"><p style="color:var(--esb-text-muted);">Select a site to view its content guide.</p></div>' +
+      '</div>';
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeGuide(); });
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('open');
+  if (siteId) {
+    var sel = document.getElementById('guide-site-select');
+    if (sel) sel.value = siteId;
+    loadGuide(siteId);
+  }
+}
+
+function closeGuide() {
+  var overlay = document.getElementById('guide-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+async function loadGuide(siteId) {
+  if (!siteId) return;
+  var body = document.getElementById('guide-modal-body');
+  if (!body) return;
+  body.innerHTML = '<div class="loading-state"><div class="spinner"></div> Loading guide…</div>';
+  try {
+    var data = await apiCall('GET', '/admin/api/guide/' + encodeURIComponent(siteId));
+    var md = (data && data.content) ? data.content : '*No guide content found.*';
+    body.innerHTML = (typeof marked !== 'undefined') ? marked.parse(md) : '<pre style="white-space:pre-wrap">' + escHtml(md) + '</pre>';
+  } catch(e) {
+    body.innerHTML = '<p style="color:var(--esb-error);">Failed to load guide: ' + escHtml(e.message) + '</p>';
+  }
 }
 
 // ── Main render ───────────────────────────────────────────────────────────────
