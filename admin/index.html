@@ -551,7 +551,8 @@ function renderCaTable() {
       '<td style="white-space:nowrap;font-size:0.85rem;font-weight:600;' + scoreCls + '">' + score + '</td>' +
       '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caRelTime(item.created_at) + '</td>' +
       '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caFmtDate(item.scheduled_for) + '</td>' +
-      '<td onclick="event.stopPropagation()" style="white-space:nowrap;"><button class=\"reviewed-btn' + (item.human_reviewed ? ' is-reviewed' : '') + '\" onclick=\"caToggleReviewed(\\'' + item.id + '\\', ' + (item.human_reviewed ? 1 : 0) + ',this)\">' + (item.human_reviewed ? '✓ Reviewed' : 'Mark Reviewed') + '</button></td>' +
+      '<td onclick="event.stopPropagation()" style="white-space:nowrap;">' +
+      '<button class="reviewed-btn' + (item.human_reviewed ? ' is-reviewed' : '') + '" onclick="caToggleReviewed(\'' + item.id + '\',' + (item.human_reviewed ? 1 : 0) + ',this)">' + (item.human_reviewed ? '\u2713 Reviewed' : 'Mark Reviewed') + '</button></td>' +
       '<td onclick="event.stopPropagation()" style="white-space:nowrap;">' +
       (item.status === 'pending' ?
         '<button class="ca-quick-btn ca-quick-approve" onclick="caQuickApprove(\'' + item.id + '\')" title="Approve">✓</button>' +
