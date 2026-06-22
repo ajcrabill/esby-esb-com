@@ -534,6 +534,30 @@ async function api(method, path, body = null, auth = true) {
   return res.json();
 }
 
+// ── Authenticated file download ──────────────────────────────────────────────
+async function downloadFile(url, suggestedName) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  try {
+    const resp = await fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.detail || 'Download failed (' + resp.status + ')');
+    }
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = suggestedName || 'evaluation.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  } catch(e) {
+    alert('Download failed: ' + e.message);
+  }
+}
+
+
 // ── Auth state ────────────────────────────────────────────────────────────────
 let currentUser = null;
 
@@ -784,9 +808,11 @@ function renderJobItem(job) {
 
   let actionHtml = '';
   if (job.status === 'complete' && job.result_url) {
-    actionHtml = `<a href="${escHtml(job.result_url)}" class="btn btn-primary btn-sm" download>
+    const _fn = (job.result_url || '').split('/').pop();
+    const _dlUrl = `${API}/eval/download/${encodeURIComponent(_fn)}`;
+    actionHtml = `<button class="btn btn-primary btn-sm" onclick="downloadFile('${escHtml(_dlUrl)}', '${escHtml(_fn)}')">
       ${ICONS.download} Download
-    </a>`;
+    </button>`;
   } else if (job.status === 'error') {
     actionHtml = `<button class="report-btn" onclick="alert(this.dataset.err)" data-err="${escHtml(job.error_msg||'No error details available')}" style="color:var(--esb-error);border-color:var(--esb-error);">See details</button>`;
   }
@@ -858,7 +884,7 @@ async function refreshRepository() {
           <td>${escHtml(added)}</td>
           <td style="white-space:nowrap;display:flex;gap:6px;align-items:center;">
             ${dlUrl
-              ? `<a href="${escHtml(dlUrl)}" class="btn btn-primary btn-sm" download>${ICONS.download} Download</a>`
+              ? `<button class="btn btn-primary btn-sm" onclick="downloadFile('${escHtml(dlUrl)}', '${escHtml(filename||'evaluation.docx')}')">${ICONS.download} Download</button>`
               : `<span style="color:var(--esb-text-muted);font-size:0.8rem;">—</span>`
             }
             <button class="report-btn" id="report-btn-${escHtml(r.id)}"
