@@ -659,9 +659,12 @@ function caRenderPanelActions() {
   if (!row || !caSelectedItem) return;
   const id = caSelectedItem.id;
   const isPending = caSelectedItem.status === 'pending';
+  var isPublished = caSelectedItem.status === 'published';
   row.innerHTML = isPending ?
     '<button class="btn btn-sm" style="background:#276749;color:#fff;" onclick="caApprove(\'' + id + '\')">✓ Approve &amp; Publish</button>' +
     '<button class="btn btn-sm" style="background:var(--esb-error);color:#fff;" onclick="caReject(\'' + id + '\')">✗ Reject</button>' :
+  isPublished ?
+    '<button class="btn btn-sm" style="background:#7c3aed;color:#fff;" onclick="caRescind(\'' + id + '\')">⛔ Rescind from Live Site</button>' :
     '<span style="font-size:0.85rem;color:var(--esb-text-muted);font-style:italic;">Read-only — status is ' + escHtml(caSelectedItem.status) + '</span>';
 }
 
@@ -787,6 +790,22 @@ async function loadGuide(siteId) {
     body.innerHTML = (typeof marked !== 'undefined') ? marked.parse(md) : '<pre style="white-space:pre-wrap">' + escHtml(md) + '</pre>';
   } catch(e) {
     body.innerHTML = '<p style="color:var(--esb-error);">Failed to load guide: ' + escHtml(e.message) + '</p>';
+  }
+}
+
+
+// ── Rescind published draft ───────────────────────────────────────────────────
+async function caRescind(id) {
+  if (!confirm('This will permanently delete the published file from the live site and cannot be undone. Rescind this piece?')) return;
+  const row = document.getElementById('ca-action-row');
+  if (row) row.innerHTML = '<span style="font-size:0.85rem;color:var(--esb-text-muted);">Rescinding…</span>';
+  try {
+    await apiCall('POST', '/admin/api/draft/' + id + '/rescind');
+    caPanelClose();
+    await loadDrafts();
+  } catch(e) {
+    alert('Rescind failed: ' + e.message);
+    caRenderPanelActions();
   }
 }
 
