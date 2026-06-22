@@ -146,6 +146,11 @@
   .ca-countdown { font-size:0.8rem; color:var(--esb-text-muted); display:inline-flex; align-items:center; gap:4px; }
   .ca-countdown.urgent { color:var(--esb-error); font-weight:600; }
   .ca-countdown.expired { color:var(--esb-error); font-weight:700; }
+  .ca-notes-wrap { display:flex; flex-direction:column; gap:4px; }
+  .ca-notes-label { font-size:0.72rem; font-weight:600; color:var(--esb-text-muted); text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; justify-content:space-between; }
+  .ca-notes-area { width:100%; resize:none; font-family:inherit; font-size:0.82rem; line-height:1.5; padding:8px 10px; border:1px solid var(--esb-border-strong); border-radius:var(--radius-sm); color:var(--esb-text); background:var(--esb-bg); height:72px; }
+  .ca-notes-area:focus { outline:none; border-color:var(--esb-blue); background:#fff; }
+  .has-notes-badge { display:inline-flex; align-items:center; gap:3px; background:#fef3c7; color:#92400e; border:1px solid #fde68a; border-radius:4px; font-size:0.68rem; font-weight:700; padding:1px 5px; vertical-align:middle; margin-left:5px; }
 
   .ca-modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; padding:20px; }
   .ca-modal-overlay.open { display:flex; }
@@ -412,6 +417,7 @@ let caItems = [];
 let caFilter = { site: '', status: 'pending', search: '' };
 let caSelectedItem = null;
 let caEditorDirty = false;
+let caNotesDirty = false;
 let caAutoRefresh = null;
 
 function caRelTime(epoch) {
@@ -487,6 +493,10 @@ function renderAdminUI() {
     '<span id="ca-quality-notes" style="font-size:0.78rem;color:var(--esb-text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>' +
     '<button class="btn btn-sm btn-ghost" id="ca-save-btn" onclick="caSaveBody()" disabled>Save</button>' +
     '</div>' +
+    '<div class="ca-notes-wrap">' +
+    '<div class="ca-notes-label">Reviewer Notes<button class="btn btn-sm btn-ghost" id="ca-notes-save-btn" onclick="caSaveNotes()" style="padding:2px 8px;font-size:0.72rem;">Save Notes</button></div>' +
+    '<textarea class="ca-notes-area" id="ca-notes-area" placeholder="Leave notes for other reviewers…" oninput="caNotesDirty=true;caUpdateNotesSaveBtn()"></textarea>' +
+    '</div>' +
     '<div class="ca-action-row" id="ca-action-row"></div>' +
     '</div></div>';
 
@@ -547,7 +557,9 @@ function renderCaTable() {
     const scoreCls = item.quality_score >= 8 ? 'color:var(--esb-success)' : item.quality_score >= 6 ? 'color:var(--esb-amber)' : item.quality_score != null ? 'color:var(--esb-error)' : '';
     return '<tr onclick="caPanelOpen(\'' + item.id + '\')">' +
       '<td><span style="font-size:0.78rem;font-weight:600;">' + escHtml(item.site_name || item.site_id) + '</span></td>' +
-      '<td style="max-width:300px;"><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(item.title) + '</span></td>' +
+      '<td style="max-width:300px;"><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(item.title) + '</span>' +
+      (item.reviewer_notes ? '<span class="has-notes-badge" title="' + escHtml(item.reviewer_notes.slice(0,120)) + '">📝 Notes</span>' : '') +
+      '</td>' +
       '<td style="white-space:nowrap;font-size:0.85rem;font-weight:600;' + scoreCls + '">' + score + '</td>' +
       '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caRelTime(item.created_at) + '</td>' +
       '<td style="white-space:nowrap;font-size:0.78rem;color:var(--esb-text-muted);">' + caFmtDate(item.scheduled_for) + '</td>' +
@@ -592,7 +604,7 @@ async function caPanelOpen(id) {
   let item;
   try { item = await apiCall('GET', '/admin/api/draft/' + id); }
   catch(e) { alert('Could not load draft: ' + e.message); caPanelClose(); return; }
-  caSelectedItem = item; caEditorDirty = false;
+  caSelectedItem = item; caEditorDirty = false; caNotesDirty = false;
   const titleEl = document.getElementById('ca-panel-title');
   const metaEl = document.getElementById('ca-panel-meta');
   const qualEl = document.getElementById('ca-quality-notes');
@@ -600,12 +612,15 @@ async function caPanelOpen(id) {
   if (metaEl) metaEl.innerHTML = escHtml(item.site_name || item.site_id) + ' &nbsp;&middot;&nbsp; ' + caStatusBadge(item.status);
   if (qualEl) qualEl.textContent = item.quality_notes ? 'Quality: ' + item.quality_notes : '';
   if (editorEl) editorEl.value = item.html_content || '';
+  const notesEl = document.getElementById('ca-notes-area');
+  if (notesEl) notesEl.value = item.reviewer_notes || '';
+  caNotesDirty = false; caUpdateNotesSaveBtn();
   caUpdateSaveBtn(); caRenderPanelActions();
 }
 
 function caPanelClose() {
-  if (caEditorDirty && !confirm('Unsaved changes. Close anyway?')) return;
-  caEditorDirty = false; caSelectedItem = null;
+  if ((caEditorDirty || caNotesDirty) && !confirm('Unsaved changes. Close anyway?')) return;
+  caEditorDirty = false; caNotesDirty = false; caSelectedItem = null;
   const ov = document.getElementById('ca-panel-overlay'); if(ov) ov.classList.remove('open');
   const pn = document.getElementById('ca-panel'); if(pn) pn.classList.remove('open');
 }
@@ -613,6 +628,29 @@ function caPanelClose() {
 function caUpdateSaveBtn() {
   const btn = document.getElementById('ca-save-btn');
   if (btn) btn.disabled = !caEditorDirty;
+}
+
+function caUpdateNotesSaveBtn() {
+  const btn = document.getElementById('ca-notes-save-btn');
+  if (btn) btn.style.opacity = caNotesDirty ? '1' : '0.4';
+}
+
+async function caSaveNotes() {
+  if (!caSelectedItem) return;
+  const notes = (document.getElementById('ca-notes-area') || {}).value || '';
+  const btn = document.getElementById('ca-notes-save-btn');
+  if (btn) { btn.disabled=true; btn.textContent='Saving…'; }
+  try {
+    await apiCall('POST', '/admin/api/draft/' + caSelectedItem.id + '/reviewer-notes', { notes: notes });
+    caNotesDirty = false; caUpdateNotesSaveBtn();
+    caSelectedItem.reviewer_notes = notes;
+    const item = caItems.find(function(i) { return i.id == caSelectedItem.id; });
+    if (item) { item.reviewer_notes = notes; renderCaTable(); }
+    if (btn) btn.textContent = 'Save Notes';
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    if (btn) { btn.disabled=false; btn.textContent='Save Notes'; }
+  }
 }
 
 function caRenderPanelActions() {
