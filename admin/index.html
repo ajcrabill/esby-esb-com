@@ -415,6 +415,7 @@ function renderAccessDenied() {
 // ── Drafts state ─────────────────────────────────────────────────────────────
 let caItems = [];
 let caFilter = { site: '', status: 'pending', search: '' };
+let caSort = { field: 'scheduled_for', dir: 1 };
 let caSelectedItem = null;
 let caEditorDirty = false;
 let caNotesDirty = false;
@@ -465,12 +466,12 @@ function renderAdminUI() {
     '</div>' +
     '<div style="overflow-x:auto;">' +
     '<table class="ca-table"><thead><tr>' +
-    '<th>Site</th>' +
-    '<th>Title</th>' +
-    '<th>Score</th>' +
-    '<th>Submitted</th>' +
-    '<th>Auto-Publishes</th>' +
-    '<th>Reviewed</th>' +
+    '<th onclick="caSortBy(\"site_name\")">' + caSortHdr('site_name','Site') + '</th>' +
+    '<th onclick="caSortBy(\"title\")">' + caSortHdr('title','Title') + '</th>' +
+    '<th onclick="caSortBy(\"quality_score\")">' + caSortHdr('quality_score','Score') + '</th>' +
+    '<th onclick="caSortBy(\"created_at\")">' + caSortHdr('created_at','Submitted') + '</th>' +
+    '<th onclick="caSortBy(\"scheduled_for\")">' + caSortHdr('scheduled_for','Auto-Publishes') + '</th>' +
+    '<th onclick="caSortBy(\"human_reviewed\")">' + caSortHdr('human_reviewed','Reviewed') + '</th>' +
     '<th>Actions</th>' +
     '</tr></thead>' +
     '<tbody id="ca-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;">' +
@@ -538,6 +539,14 @@ async function loadDrafts(silent) {
   }
 }
 
+function caSortHdr(field, label) {
+  if (caSort.field !== field) return label;
+  return label + (caSort.dir === 1 ? ' ▲' : ' ▼');
+}
+function caSortBy(field) {
+  if (caSort.field === field) { caSort.dir *= -1; } else { caSort.field = field; caSort.dir = 1; }
+  renderCaTable();
+}
 function renderCaTable() {
   const tbody = document.getElementById('ca-tbody');
   if (!tbody) return;
@@ -547,12 +556,28 @@ function renderCaTable() {
     const q = caFilter.search.toLowerCase();
     items = items.filter(function(i) { return (i.title||'').toLowerCase().includes(q); });
   }
+  items = items.slice().sort(function(a, b) {
+    var av = a[caSort.field], bv = b[caSort.field];
+    if (av == null) av = ''; if (bv == null) bv = '';
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    return av < bv ? -caSort.dir : av > bv ? caSort.dir : 0;
+  });
   const countEl = document.getElementById('ca-count-label');
   if (countEl) countEl.textContent = items.length + ' pending';
   if (!items.length) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">No pending drafts</div><p>Content will appear here when agents submit drafts.</p></div></td></tr>';
     return;
   }
+  var thead = document.querySelector('.ca-table thead tr');
+  if (thead) thead.innerHTML =
+    '<th onclick="caSortBy(\'site_name\')">'+caSortHdr('site_name','Site')+'</th>'+
+    '<th onclick="caSortBy(\'title\')">'+caSortHdr('title','Title')+'</th>'+
+    '<th onclick="caSortBy(\'quality_score\')">'+caSortHdr('quality_score','Score')+'</th>'+
+    '<th onclick="caSortBy(\'created_at\')">'+caSortHdr('created_at','Submitted')+'</th>'+
+    '<th onclick="caSortBy(\'scheduled_for\')">'+caSortHdr('scheduled_for','Auto-Publishes')+'</th>'+
+    '<th onclick="caSortBy(\'human_reviewed\')">'+caSortHdr('human_reviewed','Reviewed')+'</th>'+
+    '<th>Actions</th>';
   tbody.innerHTML = items.map(function(item) {
     const score = item.quality_score != null ? Math.round(item.quality_score * 10) / 10 : '—';
     const scoreCls = item.quality_score >= 8 ? 'color:var(--esb-success)' : item.quality_score >= 6 ? 'color:var(--esb-amber)' : item.quality_score != null ? 'color:var(--esb-error)' : '';
